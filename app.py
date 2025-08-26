@@ -423,26 +423,49 @@ def clean_and_validate_data(data: Dict) -> Dict:
 
 @st.cache_data
 def calculate_inventory_metrics(data: Dict) -> Dict:
-    """Calculate comprehensive inventory metrics with proper formulas"""
-    # First clean the data
-    cleaned_data = clean_and_validate_data(data)
-
-    metrics = {
-        "total_products": len(cleaned_data["raw_data"]),
-        "total_value": 0.0,
-        "critical_items": 0,
-        "low_stock_items": 0,
-        "out_of_stock_items": 0,
-        "high_value_items": 0,
-        "total_in": 0.0,
-        "total_out": 0.0,
-        "alert_items": [],
-        "expiring_soon": 0,
-        "fifo_items": [],
-        "avg_cost_per_unit": 0.0,
-        "total_reorder_value": 0.0,
-        "stock_turnover_rate": 0.0
-    }
+    """Calculate comprehensive inventory metrics with proper formulas and fallback handling"""
+    try:
+        # First clean the data
+        cleaned_data = clean_and_validate_data(data)
+        
+        metrics = {
+            "total_products": len(cleaned_data["raw_data"]),
+            "total_value": 0.0,
+            "critical_items": 0,
+            "low_stock_items": 0,
+            "out_of_stock_items": 0,
+            "high_value_items": 0,
+            "total_in": 0.0,
+            "total_out": 0.0,
+            "alert_items": [],
+            "expiring_soon": 0,
+            "fifo_items": [],
+            "avg_cost_per_unit": 0.0,
+            "total_reorder_value": 0.0,
+            "stock_turnover_rate": 0.0
+        }
+        
+        st.success("✅ Metrics calculation started successfully")
+        
+    except Exception as e:
+        st.error(f"❌ Failed to initialize metrics calculation: {str(e)}")
+        # Return safe defaults
+        return {
+            "total_products": 0,
+            "total_value": 0.0,
+            "critical_items": 0,
+            "low_stock_items": 0,
+            "out_of_stock_items": 0,
+            "high_value_items": 0,
+            "total_in": 0.0,
+            "total_out": 0.0,
+            "alert_items": [],
+            "expiring_soon": 0,
+            "fifo_items": [],
+            "avg_cost_per_unit": 0.0,
+            "total_reorder_value": 0.0,
+            "stock_turnover_rate": 0.0
+        }
 
     # Calculate Stock IN/OUT totals with proper validation
     for record in cleaned_data["in_data"]:
@@ -570,56 +593,85 @@ def load_all_data():
         SHEET_ID = "1G_q_d4Kg35PWBWb49f5FWmoYAnA4k0TYAg4QzIM4N24"
         sh = gc.open_by_key(SHEET_ID)
 
-        # Load all worksheets as per system structure
-        try:
-            ws_raw = sh.worksheet("Raw Material Master")
-            ws_in = sh.worksheet("Stock In")
-            ws_out = sh.worksheet("Stock Out")
-            ws_inventory = sh.worksheet("Inventory")
-            ws_supplier = sh.worksheet("Supplier Master")
-            ws_report = sh.worksheet("Report")
-            ws_staff = sh.worksheet("Staff Sheet")
-            ws_partner = sh.worksheet("Partner Sheet")
-        except Exception as e:
-            st.warning(f"Some sheets not found: {str(e)}. Loading available sheets...")
+        # Load all worksheets as per system structure with comprehensive fallback handling
+        sheets_loaded = {}
+        sheets_errors = {}
+        
+        # Define all possible sheets
+        sheet_names = [
+            "Raw Material Master",
+            "Stock In", 
+            "Stock Out",
+            "Inventory",
+            "Supplier Master",
+            "Report",
+            "Partner Sheet"
+        ]
+        
+        # Try to load each sheet individually with detailed error tracking
+        for sheet_name in sheet_names:
+            try:
+                ws = sh.worksheet(sheet_name)
+                sheets_loaded[sheet_name] = ws
+                st.success(f"✅ Loaded: {sheet_name}")
+            except Exception as e:
+                sheets_errors[sheet_name] = str(e)
+                st.error(f"❌ Failed to load: {sheet_name} - {str(e)}")
+        
+        # Report loading status
+        if sheets_errors:
+            st.warning(f"⚠️ **Loading Issues Found:** {len(sheets_errors)} sheets failed to load")
+            for sheet, error in sheets_errors.items():
+                st.write(f"  - **{sheet}:** {error}")
+        else:
+            st.success("🎉 **All sheets loaded successfully!**")
 
-        # Get all records from available sheets
+        # Get all records from available sheets with comprehensive fallback handling
         data = {}
-
-        try:
-            data["raw_data"] = ws_raw.get_all_records()
-        except:
-            data["raw_data"] = []
-
-        try:
-            data["in_data"] = ws_in.get_all_records()
-        except:
-            data["in_data"] = []
-
-        try:
-            data["out_data"] = ws_out.get_all_records()
-        except:
-            data["out_data"] = []
-
-        try:
-            data["inventory_data"] = ws_inventory.get_all_records()
-        except:
-            data["inventory_data"] = []
-
-        try:
-            data["supplier_data"] = ws_supplier.get_all_records()
-        except:
-            data["supplier_data"] = []
-
-        try:
-            data["staff_data"] = ws_staff.get_all_records()
-        except:
-            data["staff_data"] = []
-
-        try:
-            data["partner_data"] = ws_partner.get_all_records()
-        except:
-            data["partner_data"] = []
+        data_errors = {}
+        
+        # Map sheet names to data keys
+        sheet_data_mapping = {
+            "Raw Material Master": "raw_data",
+            "Stock In": "in_data",
+            "Stock Out": "out_data", 
+            "Inventory": "inventory_data",
+            "Supplier Master": "supplier_data",
+            "Report": "report_data",
+            "Partner Sheet": "partner_data"
+        }
+        
+        # Load data from each successfully loaded sheet
+        for sheet_name, ws in sheets_loaded.items():
+            data_key = sheet_data_mapping.get(sheet_name)
+            if data_key:
+                try:
+                    records = ws.get_all_records()
+                    data[data_key] = records
+                    st.success(f"📊 Loaded {len(records)} records from {sheet_name}")
+                except Exception as e:
+                    data[data_key] = []
+                    data_errors[sheet_name] = f"Failed to get records: {str(e)}"
+                    st.error(f"❌ Failed to get records from {sheet_name}: {str(e)}")
+        
+        # Initialize empty arrays for missing sheets
+        for data_key in sheet_data_mapping.values():
+            if data_key not in data:
+                data[data_key] = []
+                st.warning(f"⚠️ No data for {data_key} (sheet not found)")
+        
+        # Report data loading status
+        if data_errors:
+            st.error("🚨 **Data Loading Issues:**")
+            for sheet, error in data_errors.items():
+                st.write(f"  - **{sheet}:** {error}")
+        else:
+            st.success("📊 **All data loaded successfully!**")
+        
+        # Show data summary
+        st.info("📋 **Data Summary:**")
+        for data_key, records in data.items():
+            st.write(f"  - **{data_key}:** {len(records)} records")
 
         return data
     except Exception as e:
@@ -658,16 +710,47 @@ def main():
     if 'current_page' not in st.session_state:
         st.session_state.current_page = "dashboard"
 
-    # Load data with loading indicator
-    with st.spinner("Loading inventory data..."):
-        data = load_all_data()
+    # Load data with loading indicator and comprehensive error handling
+    try:
+        with st.spinner("Loading inventory data..."):
+            data = load_all_data()
 
-        if data is None:
-            st.error("Unable to load data. Please check your Google Sheets connection and credentials.")
-            st.stop()
+            if data is None:
+                st.error("❌ **Critical Error:** Unable to load data. Please check your Google Sheets connection and credentials.")
+                st.error("**Troubleshooting Steps:**")
+                st.write("1. Verify Google Sheets credentials are correct")
+                st.write("2. Check if the sheet ID is correct")
+                st.write("3. Ensure the service account has access to the sheets")
+                st.write("4. Check your internet connection")
+                st.stop()
 
-        # Calculate inventory metrics
-        metrics = calculate_inventory_metrics(data)
+            # Calculate inventory metrics with error handling
+            try:
+                metrics = calculate_inventory_metrics(data)
+                st.success("✅ **Data loaded and processed successfully!**")
+            except Exception as e:
+                st.error(f"❌ **Metrics Calculation Failed:** {str(e)}")
+                st.error("**Fallback:** Using default metrics")
+                # Provide safe default metrics
+                metrics = {
+                    "total_products": 0,
+                    "total_value": 0.0,
+                    "critical_items": 0,
+                    "low_stock_items": 0,
+                    "out_of_stock_items": 0,
+                    "high_value_items": 0,
+                    "total_in": 0.0,
+                    "total_out": 0.0,
+                    "alert_items": [],
+                    "avg_cost_per_unit": 0.0,
+                    "total_reorder_value": 0.0,
+                    "stock_turnover_rate": 0.0
+                }
+                
+    except Exception as e:
+        st.error(f"❌ **Application Error:** {str(e)}")
+        st.error("**Application failed to start. Please check the logs and try again.**")
+        st.stop()
 
     # Main header
     st.markdown("""
@@ -686,62 +769,72 @@ def main():
 
     # Navigation with value propositions
     st.markdown("### 🎯 What would you like to do today?")
-    
+
     # Create navigation grid
     col1, col2 = st.columns(2)
-    
+
     with col1:
         # Dashboard/Overview
-        if st.button("📊 **Dashboard Overview**\n\nSee your complete inventory status at a glance", 
+        if st.button("📊 **Dashboard Overview**\n\nSee your complete inventory status at a glance",
                     use_container_width=True, key="nav_dashboard"):
             st.session_state.current_page = "dashboard"
             st.rerun()
-        
+
         # Alerts
-        if st.button("🚨 **Reorder Alerts**\n\nItems that need immediate attention", 
+        if st.button("🚨 **Reorder Alerts**\n\nItems that need immediate attention",
                     use_container_width=True, key="nav_alerts"):
             st.session_state.current_page = "alerts"
             st.rerun()
-        
+
         # Products
-        if st.button("📦 **Product Database**\n\nManage all your products and specifications", 
+        if st.button("📦 **Product Database**\n\nManage all your products and specifications",
                     use_container_width=True, key="nav_products"):
             st.session_state.current_page = "products"
             st.rerun()
-    
+
     with col2:
         # Reports
-        if st.button("📈 **Reports & Analytics**\n\nData-driven insights and trends", 
+        if st.button("📈 **Reports & Analytics**\n\nData-driven insights and trends",
                     use_container_width=True, key="nav_reports"):
             st.session_state.current_page = "reports"
             st.rerun()
-        
+
         # Settings
-        if st.button("⚙️ **System Settings**\n\nConfigure alerts and preferences", 
+        if st.button("⚙️ **System Settings**\n\nConfigure alerts and preferences",
                     use_container_width=True, key="nav_settings"):
             st.session_state.current_page = "settings"
             st.rerun()
-        
+
         # Quick Actions
-        if st.button("🔄 **Refresh Data**\n\nGet latest inventory updates", 
+        if st.button("🔄 **Refresh Data**\n\nGet latest inventory updates",
                     use_container_width=True, key="nav_refresh"):
             load_all_data.clear()
             st.success("Data refreshed!")
             st.rerun()
 
-    # Main content based on selected page
-    if st.session_state.current_page == "dashboard":
-        show_inventory_sheet(metrics, data)
-    elif st.session_state.current_page == "alerts":
-        show_reorder_alerts(metrics)
-    elif st.session_state.current_page == "products":
-        show_raw_material_master(data, metrics)
-    elif st.session_state.current_page == "reports":
-        show_report_sheet(data, metrics)
-    elif st.session_state.current_page == "settings":
-        show_settings()
-    else:
-        show_inventory_sheet(metrics, data)  # Default to dashboard
+    # Main content based on selected page with error handling
+    try:
+        if st.session_state.current_page == "dashboard":
+            show_inventory_sheet(metrics, data)
+        elif st.session_state.current_page == "alerts":
+            show_reorder_alerts(metrics)
+        elif st.session_state.current_page == "products":
+            show_raw_material_master(data, metrics)
+        elif st.session_state.current_page == "reports":
+            show_report_sheet(data, metrics)
+        elif st.session_state.current_page == "settings":
+            show_settings()
+        else:
+            show_inventory_sheet(metrics, data)  # Default to dashboard
+    except Exception as e:
+        st.error(f"❌ **Page Error:** Failed to load {st.session_state.current_page} page")
+        st.error(f"**Error Details:** {str(e)}")
+        st.error("**Fallback:** Loading dashboard instead")
+        try:
+            show_inventory_sheet(metrics, data)
+        except Exception as fallback_error:
+            st.error(f"❌ **Critical Error:** Even fallback failed: {str(fallback_error)}")
+            st.error("**Please refresh the page or contact support.**")
 
 def show_inventory_sheet(metrics: Dict, data: Dict):
     """Inventory Sheet - Main command center as per user manual"""
@@ -1236,32 +1329,18 @@ def show_report_sheet(data: Dict, metrics: Dict):
         st.metric("Stock Out Quality", f"{out_quality:.1f}%")
         st.caption(f"{cleaned_out_records}/{total_out_records} valid records")
 
-    # Consumption Tracking as per user manual
+        # Consumption Tracking as per user manual
     st.markdown("### 📊 Consumption Tracking")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown("#### 👥 Staff Sheet Analysis")
-        st.info("""
-        - Individual product consumption by staff
-        - Period-based usage reports
-        - Cost allocation for staff usage
-        - Trend identification
-        """)
-        staff_records = len(data.get("staff_data", []))
-        st.metric("Staff Records", staff_records)
-
-    with col2:
-        st.markdown("#### 🤝 Partner Sheet Monitoring")
-        st.info("""
-        - Partner-specific consumption data
-        - Comparative usage analysis
-        - Billing support information
-        - Individual cost breakdowns
-        """)
-        partner_records = len(data.get("partner_data", []))
-        st.metric("Partner Records", partner_records)
+    
+    st.markdown("#### 🤝 Partner Sheet Monitoring")
+    st.info("""
+    - Partner-specific consumption data
+    - Comparative usage analysis
+    - Billing support information
+    - Individual cost breakdowns
+    """)
+    partner_records = len(data.get("partner_data", []))
+    st.metric("Partner Records", partner_records)
 
     # System sheets overview
     st.markdown("### 📋 System Sheets Overview")
@@ -1273,7 +1352,6 @@ def show_report_sheet(data: Dict, metrics: Dict):
         "Inventory": len(data.get("inventory_data", [])),
         "Supplier Master": len(data.get("supplier_data", [])),
         "Report": len(data.get("report_data", [])),
-        "Staff Sheet": len(data.get("staff_data", [])),
         "Partner Sheet": len(data.get("partner_data", []))
     }
 
