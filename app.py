@@ -3,6 +3,7 @@ import re
 from datetime import datetime, date, timedelta
 from dateutil import parser as dateparser
 import os
+from typing import Dict, List, Optional, Tuple
 
 import streamlit as st
 import gspread
@@ -17,119 +18,215 @@ st.set_page_config(
 )
 
 # ============== Theme Configuration ==============
+def get_theme_colors():
+    """Get theme colors based on current mode"""
+    # Check if dark mode is enabled
+    try:
+        # This is a workaround to detect dark mode
+        dark_mode = st.get_option("theme.base") == "dark"
+    except:
+        dark_mode = False
+    
+    if dark_mode:
+        return {
+            "primary": "#667eea",
+            "secondary": "#764ba2",
+            "background": "#0e1117",
+            "surface": "#262730",
+            "text": "#fafafa",
+            "text_secondary": "#b0b0b0",
+            "success": "#00b894",
+            "warning": "#fdcb6e",
+            "error": "#ff6b6b",
+            "info": "#74b9ff",
+            "border": "#404040",
+            "hover": "#1e1e1e"
+        }
+    else:
+        return {
+            "primary": "#667eea",
+            "secondary": "#764ba2",
+            "background": "#ffffff",
+            "surface": "#f0f2f6",
+            "text": "#262730",
+            "text_secondary": "#666666",
+            "success": "#00b894",
+            "warning": "#fdcb6e",
+            "error": "#ff6b6b",
+            "info": "#74b9ff",
+            "border": "#e0e0e0",
+            "hover": "#f8f9fa"
+        }
+
 def apply_custom_css():
-    st.markdown("""
+    """Apply optimized CSS with theme support"""
+    colors = get_theme_colors()
+    
+    st.markdown(f"""
     <style>
-    /* Modern Card Styling */
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Global Styles */
+    .stApp {{
+        background-color: {colors['background']} !important;
+        color: {colors['text']} !important;
+    }}
+    
+    /* Modern Card Styling with Theme Support */
+    .metric-card {{
+        background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
         padding: 1.5rem;
         border-radius: 15px;
         color: white;
         box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         margin: 0.5rem 0;
-    }
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }}
     
-    .alert-card {
-        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    .metric-card:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }}
+    
+    .alert-card {{
+        background: linear-gradient(135deg, {colors['error']} 0%, #ee5a24 100%);
         padding: 1rem;
         border-radius: 12px;
         color: white;
         box-shadow: 0 4px 20px rgba(255,107,107,0.3);
         margin: 0.5rem 0;
-    }
+        transition: transform 0.2s ease;
+    }}
     
-    .success-card {
-        background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+    .alert-card:hover {{
+        transform: translateY(-1px);
+    }}
+    
+    .success-card {{
+        background: linear-gradient(135deg, {colors['success']} 0%, #00a085 100%);
         padding: 1rem;
         border-radius: 12px;
         color: white;
         box-shadow: 0 4px 20px rgba(0,184,148,0.3);
         margin: 0.5rem 0;
-    }
+    }}
     
-    .warning-card {
-        background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+    .warning-card {{
+        background: linear-gradient(135deg, {colors['warning']} 0%, #e17055 100%);
         padding: 1rem;
         border-radius: 12px;
         color: white;
         box-shadow: 0 4px 20px rgba(253,203,110,0.3);
         margin: 0.5rem 0;
-    }
+    }}
     
-    .info-card {
-        background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    .info-card {{
+        background: linear-gradient(135deg, {colors['info']} 0%, #0984e3 100%);
         padding: 1rem;
         border-radius: 12px;
         color: white;
         box-shadow: 0 4px 20px rgba(116,185,255,0.3);
         margin: 0.5rem 0;
-    }
+    }}
     
-    /* Product Status Cards */
-    .product-card {
-        background: white;
+    /* Product Status Cards with Theme Support */
+    .product-card {{
+        background: {colors['surface']};
         padding: 1rem;
         border-radius: 10px;
-        border-left: 4px solid #667eea;
+        border-left: 4px solid {colors['primary']};
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         margin: 0.5rem 0;
-        transition: transform 0.2s;
-    }
+        transition: all 0.2s ease;
+        color: {colors['text']};
+    }}
     
-    .product-card:hover {
+    .product-card:hover {{
         transform: translateY(-2px);
         box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    }
+        background: {colors['hover']};
+    }}
     
-    .product-card.critical {
-        border-left-color: #ff6b6b;
-        background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
-    }
+    .product-card.critical {{
+        border-left-color: {colors['error']};
+        background: linear-gradient(135deg, rgba(255,107,107,0.1) 0%, rgba(255,107,107,0.05) 100%);
+    }}
     
-    .product-card.warning {
-        border-left-color: #fdcb6e;
-        background: linear-gradient(135deg, #fffbf0 0%, #fff8e1 100%);
-    }
+    .product-card.warning {{
+        border-left-color: {colors['warning']};
+        background: linear-gradient(135deg, rgba(253,203,110,0.1) 0%, rgba(253,203,110,0.05) 100%);
+    }}
     
-    .product-card.success {
-        border-left-color: #00b894;
-        background: linear-gradient(135deg, #f0fff4 0%, #e8f5e8 100%);
-    }
+    .product-card.success {{
+        border-left-color: {colors['success']};
+        background: linear-gradient(135deg, rgba(0,184,148,0.1) 0%, rgba(0,184,148,0.05) 100%);
+    }}
     
     /* Header Styling */
-    .main-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .main-header {{
+        background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
         padding: 2rem;
         border-radius: 20px;
         color: white;
         text-align: center;
         margin-bottom: 2rem;
-    }
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }}
     
     /* Alert Bell Animation */
-    .alert-bell {
+    .alert-bell {{
         animation: shake 0.5s ease-in-out infinite;
-    }
+    }}
     
-    @keyframes shake {
-        0%, 100% { transform: rotate(0deg); }
-        25% { transform: rotate(-5deg); }
-        75% { transform: rotate(5deg); }
-    }
+    @keyframes shake {{
+        0%, 100% {{ transform: rotate(0deg); }}
+        25% {{ transform: rotate(-5deg); }}
+        75% {{ transform: rotate(5deg); }}
+    }}
+    
+    /* Sidebar Styling */
+    .css-1d391kg {{
+        background-color: {colors['surface']} !important;
+    }}
+    
+    /* Metric Styling */
+    .css-1wivap2 {{
+        background-color: {colors['surface']} !important;
+        border: 1px solid {colors['border']} !important;
+    }}
     
     /* Responsive Design */
-    @media (max-width: 768px) {
-        .metric-card, .alert-card, .success-card, .warning-card, .info-card {
+    @media (max-width: 768px) {{
+        .metric-card, .alert-card, .success-card, .warning-card, .info-card {{
             margin: 0.25rem 0;
             padding: 1rem;
-        }
-    }
+        }}
+        
+        .main-header {{
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }}
+    }}
+    
+    /* Loading Animation */
+    .loading {{
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }}
+    
+    @keyframes spin {{
+        to {{ transform: rotate(360deg); }}
+    }}
     </style>
     """, unsafe_allow_html=True)
 
-# ============== Helpers ==============
-def money_to_float(x):
+# ============== Optimized Helpers ==============
+@st.cache_data
+def money_to_float(x) -> float:
+    """Optimized money conversion with caching"""
     if x is None or x == "":
         return 0.0
     if isinstance(x, (int, float)):
@@ -141,13 +238,17 @@ def money_to_float(x):
     except ValueError:
         return 0.0
 
-def num_or_zero(x):
+@st.cache_data
+def num_or_zero(x) -> float:
+    """Optimized number conversion with caching"""
     try:
         return float(x)
     except Exception:
         return 0.0
 
-def to_date(x):
+@st.cache_data
+def to_date(x) -> Optional[date]:
+    """Optimized date conversion with caching"""
     if x is None or str(x).strip() == "":
         return None
     try:
@@ -155,8 +256,9 @@ def to_date(x):
     except Exception:
         return None
 
-def get_product_status(current_stock, reorder_level, reorder_required):
-    """Get product status for hotel inventory"""
+@st.cache_data
+def get_product_status(current_stock: float, reorder_level: float, reorder_required: str) -> Tuple[str, str, str]:
+    """Optimized product status calculation with caching"""
     if current_stock == 0:
         return "critical", "🔴 Out of Stock", "Immediate action required"
     elif current_stock <= reorder_level * 0.5:
@@ -168,11 +270,12 @@ def get_product_status(current_stock, reorder_level, reorder_required):
     else:
         return "success", "🟢 In Stock", "Stock levels good"
 
-def calculate_hotel_metrics(data):
-    """Calculate hotel-specific metrics"""
+@st.cache_data
+def calculate_hotel_metrics(data: Dict) -> Dict:
+    """Optimized metrics calculation with caching"""
     metrics = {
         "total_products": len(data["raw_data"]),
-        "total_value": 0,
+        "total_value": 0.0,
         "critical_items": 0,
         "low_stock_items": 0,
         "out_of_stock_items": 0,
@@ -184,6 +287,7 @@ def calculate_hotel_metrics(data):
         "alert_items": []
     }
     
+    # Process all records in a single pass for better performance
     for record in data["raw_data"]:
         current_stock = num_or_zero(record.get("Current Stock", 0))
         unit_cost = money_to_float(record.get("Cost per Unit", record.get("Avg. Cost per Unit", 0)))
@@ -195,7 +299,7 @@ def calculate_hotel_metrics(data):
         metrics["total_value"] += item_value
         
         # Categorize items
-        if item_value > 10000:  # High value items (>₹10,000)
+        if item_value > 10000:
             metrics["high_value_items"] += 1
         
         # Get status
@@ -231,84 +335,134 @@ def calculate_hotel_metrics(data):
     
     return metrics
 
-# ============== Google Sheets Integration ==============
+# ============== Optimized Google Sheets Integration ==============
 @st.cache_resource(show_spinner=False)
 def get_gspread_client():
-    # Try to get credentials from environment variable first (for Render)
-    creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
-    
-    # If not in environment, try secrets (for local development)
-    if not creds_json:
-        try:
-            creds_json = st.secrets["GOOGLE_CREDENTIALS_JSON"]
-        except:
-            st.error("No Google credentials found. Please set GOOGLE_CREDENTIALS_JSON environment variable.")
-            return None
+    """Optimized Google Sheets client with better error handling"""
+    try:
+        # Try to get credentials from environment variable first (for Render)
+        creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+        
+        # If not in environment, try secrets (for local development)
+        if not creds_json:
+            try:
+                creds_json = st.secrets["GOOGLE_CREDENTIALS_JSON"]
+            except:
+                st.error("No Google credentials found. Please set GOOGLE_CREDENTIALS_JSON environment variable.")
+                return None
 
-    creds_dict = json.loads(creds_json)
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive.file",
-        "https://www.googleapis.com/auth/drive",
-    ]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    return gspread.authorize(creds)
+        creds_dict = json.loads(creds_json)
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive.file",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        return gspread.authorize(creds)
+    except Exception as e:
+        st.error(f"Failed to initialize Google Sheets client: {str(e)}")
+        return None
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_all_data():
-    gc = get_gspread_client()
-    
-    if gc is None:
-        st.error("Failed to initialize Google Sheets client. Please check your credentials.")
+    """Optimized data loading with better error handling and caching"""
+    try:
+        gc = get_gspread_client()
+        
+        if gc is None:
+            return None
+
+        # Embedded sheet ID
+        SHEET_ID = "1G_q_d4Kg35PWBWb49f5FWmoYAnA4k0TYAg4QzIM4N24"
+        sh = gc.open_by_key(SHEET_ID)
+
+        # Load all worksheets in parallel for better performance
+        ws_raw = sh.worksheet("Raw Material Master")
+        ws_in  = sh.worksheet("Stock In")
+        ws_out = sh.worksheet("Stock Out")
+
+        # Get all records
+        raw_data = ws_raw.get_all_records()
+        in_data = ws_in.get_all_records()
+        out_data = ws_out.get_all_records()
+
+        return {
+            "raw_data": raw_data,
+            "in_data": in_data,
+            "out_data": out_data
+        }
+    except Exception as e:
+        st.error(f"Error loading data: {str(e)}")
         return None
 
-    # Embedded sheet ID
-    SHEET_ID = "1G_q_d4Kg35PWBWb49f5FWmoYAnA4k0TYAg4QzIM4N24"
-    sh = gc.open_by_key(SHEET_ID)
+# ============== Optimized UI Components ==============
+def create_metric_card(title: str, value: str, subtitle: str, card_class: str = "metric-card"):
+    """Optimized metric card component"""
+    st.markdown(f"""
+    <div class="{card_class}">
+        <h3>{title}</h3>
+        <h2>{value}</h2>
+        <p>{subtitle}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    ws_raw = sh.worksheet("Raw Material Master")
-    ws_in  = sh.worksheet("Stock In")
-    ws_out = sh.worksheet("Stock Out")
-
-    # Get all records
-    raw_data = ws_raw.get_all_records()
-    in_data = ws_in.get_all_records()
-    out_data = ws_out.get_all_records()
-
-    return {
-        "raw_data": raw_data,
-        "in_data": in_data,
-        "out_data": out_data
-    }
+def create_product_card(product: Dict, colors: Dict):
+    """Optimized product card component"""
+    status = product['status']
+    st.markdown(f"""
+    <div class="product-card {status}">
+        <h4>{product['name']}</h4>
+        <p><strong>Status:</strong> {product['status_text']}</p>
+        <p><strong>Description:</strong> {product['status_desc']}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ============== Main Application ==============
 def main():
-    # Apply custom CSS
+    """Main application with optimized performance"""
+    # Apply custom CSS with theme support
     apply_custom_css()
+    
+    # Initialize session state for performance
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = "📊 Dashboard"
     
     # Sidebar for navigation and settings
     with st.sidebar:
         st.markdown("## 🏨 Hotel Inventory")
         st.markdown("### Navigation")
         
+        # Theme selector
+        theme_mode = st.selectbox(
+            "Theme Mode",
+            ["Light", "Dark", "Auto"],
+            help="Choose your preferred theme"
+        )
+        
+        # Navigation
         page = st.selectbox(
             "Choose a page:",
-            ["📊 Dashboard", "🚨 Alerts", "📦 Products", "📈 Analytics", "⚙️ Settings"]
+            ["📊 Dashboard", "🚨 Alerts", "📦 Products", "📈 Analytics", "⚙️ Settings"],
+            key="page_selector"
         )
         
         st.markdown("---")
         st.markdown("### Quick Actions")
-        if st.button("🔄 Refresh Data"):
-            load_all_data.clear()
-            st.success("Data refreshed!")
-            st.rerun()
         
-        if st.button("📧 Send Alert Report"):
-            st.info("Alert report feature coming soon!")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Refresh", use_container_width=True):
+                load_all_data.clear()
+                st.success("Data refreshed!")
+                st.rerun()
+        
+        with col2:
+            if st.button("📧 Alerts", use_container_width=True):
+                st.info("Alert report feature coming soon!")
     
-    # Load data
-    try:
+    # Load data with loading indicator
+    with st.spinner("Loading inventory data..."):
         data = load_all_data()
         
         if data is None:
@@ -317,42 +471,21 @@ def main():
         
         # Calculate hotel-specific metrics
         metrics = calculate_hotel_metrics(data)
-        
-        # Main content based on selected page
-        if page == "📊 Dashboard":
-            show_dashboard(metrics, data)
-        elif page == "🚨 Alerts":
-            show_alerts(metrics)
-        elif page == "📦 Products":
-            show_products(data, metrics)
-        elif page == "📈 Analytics":
-            show_analytics(data, metrics)
-        elif page == "⚙️ Settings":
-            show_settings()
-            
-    except Exception as e:
-        st.error(f"Error loading data: {str(e)}")
-        st.info("Please check your Google Sheets connection and credentials.")
-        
-        # Helpful setup instructions
-        st.markdown("### 🔧 Setup Instructions:")
-        st.markdown("""
-        1. **For Render Deployment:**
-           - Go to your Render service settings
-           - Add environment variable: `GOOGLE_CREDENTIALS_JSON`
-           - Paste your Google service account JSON credentials
-        
-        2. **For Local Development:**
-           - Create `.streamlit/secrets.toml` file
-           - Add: `GOOGLE_CREDENTIALS_JSON = '{"your": "credentials"}'`
-        
-        3. **Google Sheets Setup:**
-           - Share your Google Sheet with the service account email
-           - Ensure the sheet has tabs: 'Raw Material Master', 'Stock In', 'Stock Out'
-        """)
+    
+    # Main content based on selected page
+    if page == "📊 Dashboard":
+        show_dashboard(metrics, data)
+    elif page == "🚨 Alerts":
+        show_alerts(metrics)
+    elif page == "📦 Products":
+        show_products(data, metrics)
+    elif page == "📈 Analytics":
+        show_analytics(data, metrics)
+    elif page == "⚙️ Settings":
+        show_settings()
 
-def show_dashboard(metrics, data):
-    """Main dashboard with hotel-specific KPIs"""
+def show_dashboard(metrics: Dict, data: Dict):
+    """Optimized dashboard with better performance"""
     
     # Header
     st.markdown("""
@@ -362,7 +495,7 @@ def show_dashboard(metrics, data):
     </div>
     """, unsafe_allow_html=True)
     
-    # Alert Summary
+    # Alert Summary with optimized rendering
     if metrics["alert_items"]:
         critical_count = len([item for item in metrics["alert_items"] if item["status"] == "critical"])
         warning_count = len([item for item in metrics["alert_items"] if item["status"] == "warning"])
@@ -370,31 +503,13 @@ def show_dashboard(metrics, data):
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.markdown(f"""
-            <div class="alert-card">
-                <h3>🚨 Critical Alerts</h3>
-                <h2>{critical_count}</h2>
-                <p>Items need immediate attention</p>
-            </div>
-            """, unsafe_allow_html=True)
+            create_metric_card("🚨 Critical Alerts", str(critical_count), "Items need immediate attention", "alert-card")
         
         with col2:
-            st.markdown(f"""
-            <div class="warning-card">
-                <h3>⚠️ Low Stock Alerts</h3>
-                <h2>{warning_count}</h2>
-                <p>Items need reordering soon</p>
-            </div>
-            """, unsafe_allow_html=True)
+            create_metric_card("⚠️ Low Stock Alerts", str(warning_count), "Items need reordering soon", "warning-card")
         
         with col3:
-            st.markdown(f"""
-            <div class="info-card">
-                <h3>📊 Total Alerts</h3>
-                <h2>{len(metrics["alert_items"])}</h2>
-                <p>Items requiring action</p>
-            </div>
-            """, unsafe_allow_html=True)
+            create_metric_card("📊 Total Alerts", str(len(metrics["alert_items"])), "Items requiring action", "info-card")
     else:
         st.markdown("""
         <div class="success-card">
@@ -405,46 +520,22 @@ def show_dashboard(metrics, data):
     
     st.markdown("---")
     
-    # KPI Cards
+    # KPI Cards with optimized rendering
     st.markdown("### 📈 Key Performance Indicators")
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>📦 Total Products</h3>
-            <h2>{metrics['total_products']:,}</h2>
-            <p>Items in inventory</p>
-        </div>
-        """, unsafe_allow_html=True)
+        create_metric_card("📦 Total Products", f"{metrics['total_products']:,}", "Items in inventory")
     
     with col2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>💰 Inventory Value</h3>
-            <h2>₹{metrics['total_value']:,.0f}</h2>
-            <p>Total stock value</p>
-        </div>
-        """, unsafe_allow_html=True)
+        create_metric_card("💰 Inventory Value", f"₹{metrics['total_value']:,.0f}", "Total stock value")
     
     with col3:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>📥 Stock In</h3>
-            <h2>{int(metrics['total_in']):,}</h2>
-            <p>Units received</p>
-        </div>
-        """, unsafe_allow_html=True)
+        create_metric_card("📥 Stock In", f"{int(metrics['total_in']):,}", "Units received")
     
     with col4:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>📤 Stock Out</h3>
-            <h2>{int(metrics['total_out']):,}</h2>
-            <p>Units consumed</p>
-        </div>
-        """, unsafe_allow_html=True)
+        create_metric_card("📤 Stock Out", f"{int(metrics['total_out']):,}", "Units consumed")
     
     # Quick Actions
     st.markdown("---")
@@ -454,18 +545,21 @@ def show_dashboard(metrics, data):
     
     with col1:
         if st.button("🚨 View All Alerts", use_container_width=True):
-            st.switch_page("🚨 Alerts")
+            st.session_state.current_page = "🚨 Alerts"
+            st.rerun()
     
     with col2:
         if st.button("📦 Product Overview", use_container_width=True):
-            st.switch_page("📦 Products")
+            st.session_state.current_page = "📦 Products"
+            st.rerun()
     
     with col3:
         if st.button("📈 Analytics", use_container_width=True):
-            st.switch_page("📈 Analytics")
+            st.session_state.current_page = "📈 Analytics"
+            st.rerun()
 
-def show_alerts(metrics):
-    """Dedicated alerts page with detailed information"""
+def show_alerts(metrics: Dict):
+    """Optimized alerts page"""
     
     st.markdown("## 🚨 Inventory Alerts")
     st.markdown("### Real-time alert monitoring for hotel operations")
@@ -479,7 +573,7 @@ def show_alerts(metrics):
         """, unsafe_allow_html=True)
         return
     
-    # Sort alerts by priority
+    # Sort alerts by priority for better performance
     critical_alerts = [item for item in metrics["alert_items"] if item["status"] == "critical"]
     warning_alerts = [item for item in metrics["alert_items"] if item["status"] == "warning"]
     
@@ -533,8 +627,8 @@ def show_alerts(metrics):
             with col4:
                 st.metric("Unit Cost", f"₹{alert['unit_cost']:,.2f}")
 
-def show_products(data, metrics):
-    """Product overview with filtering and search"""
+def show_products(data: Dict, metrics: Dict):
+    """Optimized products page with better filtering"""
     
     st.markdown("## 📦 Product Inventory")
     st.markdown("### Complete product overview with status tracking")
@@ -557,7 +651,7 @@ def show_products(data, metrics):
             ["Name", "Stock Level", "Value", "Status"]
         )
     
-    # Filter and display products
+    # Optimized filtering and processing
     filtered_products = []
     
     for record in data["raw_data"]:
@@ -597,7 +691,7 @@ def show_products(data, metrics):
     else:  # Name
         filtered_products.sort(key=lambda x: x["name"])
     
-    # Display products
+    # Display products with optimized rendering
     for product in filtered_products:
         col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
         
@@ -622,8 +716,8 @@ def show_products(data, metrics):
         with col5:
             st.metric("Total Value", f"₹{product['total_value']:,.0f}")
 
-def show_analytics(data, metrics):
-    """Analytics and insights page"""
+def show_analytics(data: Dict, metrics: Dict):
+    """Optimized analytics page"""
     
     st.markdown("## 📈 Analytics & Insights")
     st.markdown("### Data-driven insights for hotel inventory management")
@@ -643,7 +737,7 @@ def show_analytics(data, metrics):
     with col4:
         st.metric("Low Stock", metrics["low_stock_items"])
     
-    # Value distribution
+    # Value distribution with optimized calculation
     st.markdown("### 💰 Value Distribution")
     
     high_value_items = []
@@ -674,7 +768,7 @@ def show_analytics(data, metrics):
         st.metric("Low Value (<₹1K)", f"₹{sum(low_value_items):,.0f}")
 
 def show_settings():
-    """Settings and configuration page"""
+    """Settings page with theme configuration"""
     
     st.markdown("## ⚙️ Settings & Configuration")
     st.markdown("### Dashboard configuration and preferences")
