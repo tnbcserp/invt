@@ -1,24 +1,25 @@
 import json
 import re
-from datetime import datetime
+from datetime import datetime, date
 from dateutil import parser as dateparser
 
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 # ============== Helpers ==============
 
 def money_to_float(x):
-    """Convert strings like '₹1,650' to 1650.0; pass through numbers; None->0."""
     if pd.isna(x):
         return 0.0
     if isinstance(x, (int, float)):
         return float(x)
     s = str(x)
-    s = re.sub(r"[^\d.\-]", "", s)  # remove currency/commas
+    s = re.sub(r"[^\d.\-]", "", s)  # remove currency symbols / commas
     try:
         return float(s) if s != "" else 0.0
     except ValueError:
@@ -38,6 +39,20 @@ def to_date(x):
     except Exception:
         return pd.NaT
 
+def highlight_stock(row):
+    """Apply conditional formatting to inventory rows"""
+    colors = [''] * len(row)
+
+    # Check if out of stock
+    if row.get('Current Stock', 0) == 0:
+        colors = ['background-color: #ffebee; color: #c62828'] * len(row)  # Light red background
+    # Check if below reorder level or re-order required
+    elif (row.get('Current Stock', 0) <= row.get('Reorder Level', 0) or
+          str(row.get('Re-Order Required', '')).strip().upper() == 'YES'):
+        colors = ['background-color: #fff3e0; color: #ef6c00'] * len(row)  # Light orange background
+
+    return colors
+
 # ============== Auth / Sheets ==============
 
 @st.cache_resource(show_spinner=False)
@@ -53,10 +68,13 @@ def get_gspread_client():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds)
 
-@st.cache_data(ttl=300, show_spinner=False)  # 5 minutes
+@st.cache_data(ttl=300, show_spinner=False)
 def load_all_data():
     gc = get_gspread_client()
-    sh = gc.open_by_key(st.secrets["SHEET_ID"])
+
+    # Embedded sheet ID
+    SHEET_ID = "1G_q_d4Kg35PWBWb49f5FWmoYAnA4k0TYAg4QzIM4N24"
+    sh = gc.open_by_key(SHEET_ID)
 
     ws_raw = sh.worksheet("Raw Material Master")
     ws_in  = sh.worksheet("Stock In")
@@ -66,26 +84,23 @@ def load_all_data():
     df_in  = pd.DataFrame(ws_in.get_all_records())
     df_out = pd.DataFrame(ws_out.get_all_records())
 
-    # Normalize column names (strip spaces)
+    # Normalize column names
     df_raw.columns = [c.strip() for c in df_raw.columns]
     df_in.columns  = [c.strip() for c in df_in.columns]
     df_out.columns = [c.strip() for c in df_out.columns]
 
-    # Standardize numeric money fields
+    # Convert money columns
     for col in ["Avg. Cost per Unit", "Cost per Unit", "Reorder Level"]:
         if col in df_raw.columns:
             df_raw[col] = df_raw[col].apply(money_to_float)
 
-    # Attempt to ensure Quantity columns exist for in/out
-    if "Quantity" not in df_in.columns:
-        # Some users store Quantity in "Quantity In"
-        if "Quantity In" in df_in.columns:
-            df_in["Quantity"] = df_in["Quantity In"]
-        else:
-            df_in["Quantity"] = 0
+    # Ensure Quantity columns exist
+    df_in["Quantity"] = df_in.get("Quantity", df_in.get("Quantity In", 0))
+    df_out["Quantity Out"] = df_out.get("Quantity Out", 0)
 
-    if "Quantity Out" not in df_out.columns:
-        df_out["Quantity Out"] = 0
+    # Convert Quantity columns to numeric to avoid TypeError
+    df_in["Quantity"] = pd.to_numeric(df_in["Quantity"], errors="coerce").fillna(0)
+    df_out["Quantity Out"] = pd.to_numeric(df_out["Quantity Out"], errors="coerce").fillna(0)
 
     # Parse dates
     if "Date" in df_in.columns:
@@ -93,11 +108,9 @@ def load_all_data():
     if "Date" in df_out.columns:
         df_out["Date"] = df_out["Date"].apply(to_date)
 
-    # Derive keys to match Stock In/Out to Raw Master
-    # Prefer RM ID if available, else fallback to Product Name
+    # Derive keys
     key_col = "RM ID" if "RM ID" in df_raw.columns else "Product Name"
 
-    # Build in/out totals by key
     def key_series(df, possible_cols):
         for c in possible_cols:
             if c in df.columns:
@@ -108,6 +121,7 @@ def load_all_data():
     df_out["_key"] = key_series(df_out, ["RM ID", "Product ID", "Product Name"])
     df_raw["_key"] = key_series(df_raw, [key_col])
 
+    # Totals
     in_totals  = df_in.groupby("_key", dropna=False)["Quantity"].sum().reset_index().rename(columns={"Quantity":"InQty"})
     out_totals = df_out.groupby("_key", dropna=False)["Quantity Out"].sum().reset_index().rename(columns={"Quantity Out":"OutQty"})
 
@@ -117,28 +131,49 @@ def load_all_data():
     inv["OutQty"] = inv["OutQty"].fillna(0).apply(num_or_zero)
     inv["Current Stock"] = inv["InQty"] - inv["OutQty"]
 
-    # Pick cost column (Cost per Unit fallback to Avg)
+    # Unit Cost & Inventory Value
     inv["Unit Cost"] = inv.apply(
         lambda r: r["Cost per Unit"] if r.get("Cost per Unit", 0) else r.get("Avg. Cost per Unit", 0),
         axis=1
     )
     inv["Inventory Value"] = inv["Current Stock"] * inv["Unit Cost"]
 
-    # Alerts
-    if "Reorder Level" in inv.columns:
-        inv["Below Reorder"] = inv["Current Stock"] <= inv["Reorder Level"]
+    # Enhanced Alert Detection
+    inv["Reorder Level"] = inv.get("Reorder Level", 0)
+    inv["Re-Order Required"] = inv.get("Re-Order Required", "")
+
+    # Condition 1: Current Stock <= Reorder Level
+    inv["Below Reorder Level"] = inv["Current Stock"] <= inv["Reorder Level"]
+
+    # Condition 2: Re-Order Required = "Yes"
+    inv["Manual Reorder Flag"] = inv["Re-Order Required"].astype(str).str.strip().str.upper() == "YES"
+
+    # Condition 3: Current Stock = 0 (Out of Stock)
+    inv["Out of Stock"] = inv["Current Stock"] == 0
+
+    # Combined alert condition
+    inv["Needs Reorder"] = (inv["Below Reorder Level"] | inv["Manual Reorder Flag"] | inv["Out of Stock"])
+
+    # Alert severity
+    def get_alert_severity(row):
+        if row["Out of Stock"]:
+            return "Critical"
+        elif row["Manual Reorder Flag"]:
+            return "High"
+        elif row["Below Reorder Level"]:
+            return "Medium"
     else:
-        inv["Below Reorder"] = False
+            return "None"
+
+    inv["Alert Severity"] = inv.apply(get_alert_severity, axis=1)
 
     # Trend frames
     in_trend = df_in.copy()
     if "Date" in in_trend.columns:
-        in_trend = in_trend.dropna(subset=["Date"])
-        in_trend = in_trend.groupby("Date")["Quantity"].sum().reset_index(name="Stock In")
+        in_trend = in_trend.dropna(subset=["Date"]).groupby("Date")["Quantity"].sum().reset_index(name="Stock In")
     out_trend = df_out.copy()
     if "Date" in out_trend.columns:
-        out_trend = out_trend.dropna(subset=["Date"])
-        out_trend = out_trend.groupby("Date")["Quantity Out"].sum().reset_index(name="Stock Out")
+        out_trend = out_trend.dropna(subset=["Date"]).groupby("Date")["Quantity Out"].sum().reset_index(name="Stock Out")
 
     return {
         "df_raw": df_raw,
@@ -151,33 +186,80 @@ def load_all_data():
 
 def append_stock_in(row_dict):
     gc = get_gspread_client()
-    sh = gc.open_by_key(st.secrets["SHEET_ID"])
+    sh = gc.open_by_key("1G_q_d4Kg35PWBWb49f5FWmoYAnA4k0TYAg4QzIM4N24")
     ws = sh.worksheet("Stock In")
-    # Append maintaining column order if exists, else append values list
     headers = ws.row_values(1)
     values = [row_dict.get(h, "") for h in headers]
     ws.append_row(values, value_input_option="USER_ENTERED")
 
 def append_stock_out(row_dict):
     gc = get_gspread_client()
-    sh = gc.open_by_key(st.secrets["SHEET_ID"])
+    sh = gc.open_by_key("1G_q_d4Kg35PWBWb49f5FWmoYAnA4k0TYAg4QzIM4N24")
     ws = sh.worksheet("Stock Out")
     headers = ws.row_values(1)
     values = [row_dict.get(h, "") for h in headers]
     ws.append_row(values, value_input_option="USER_ENTERED")
 
+# ============== Alert Management ==============
+
+def initialize_session_state():
+    """Initialize session state for alert tracking"""
+    if "alerts_history" not in st.session_state:
+        st.session_state["alerts_history"] = []
+    if "last_alert_snapshot" not in st.session_state:
+        st.session_state["last_alert_snapshot"] = None
+
+def update_alerts_history(current_alerts):
+    """Update alert history and detect changes"""
+    current_timestamp = datetime.now()
+
+    # Create current alert snapshot
+    current_snapshot = {
+        "timestamp": current_timestamp,
+        "alerts": current_alerts.copy(),
+        "alert_count": len(current_alerts)
+    }
+
+    # Check if alerts have changed
+    if st.session_state["last_alert_snapshot"] is None:
+        # First time loading
+        st.session_state["last_alert_snapshot"] = current_snapshot
+        if len(current_alerts) > 0:
+            st.session_state["alerts_history"].append(current_snapshot)
+    else:
+        last_snapshot = st.session_state["last_alert_snapshot"]
+
+        # Check if alerts have changed
+        if (len(current_alerts) != last_snapshot["alert_count"] or
+            not current_alerts.equals(last_snapshot["alerts"])):
+
+            st.session_state["alerts_history"].append(current_snapshot)
+            st.session_state["last_alert_snapshot"] = current_snapshot
+
+            # Keep only last 10 alert snapshots
+            if len(st.session_state["alerts_history"]) > 10:
+                st.session_state["alerts_history"] = st.session_state["alerts_history"][-10:]
+
 # ============== UI ==============
 
 st.set_page_config(page_title="Inventory Dashboard", page_icon="📦", layout="wide")
 
-# Header with Notification Bell
+# Initialize session state
+initialize_session_state()
+
+# Load data
 data = load_all_data()
 inv = data["inventory"]
 
-alerts_df = inv[inv["Below Reorder"] == True]
-alerts_count = int(alerts_df.shape[0])
+# Get current alerts
+current_alerts = inv[inv["Needs Reorder"] == True].copy()
+alerts_count = len(current_alerts)
 
-col_logo, col_title, col_alerts, col_refresh = st.columns([0.5, 5, 1.2, 1.2])
+# Update alert history
+update_alerts_history(current_alerts)
+
+# Header with notification bell
+col_logo, col_title, col_alerts, col_refresh = st.columns([0.5, 4, 1.5, 1])
 with col_logo:
     st.markdown("### 📦")
 with col_title:
@@ -186,144 +268,292 @@ with col_alerts:
     # Notification bell with count
     bell = "🔔" if alerts_count > 0 else "🔕"
     st.markdown(f"### {bell} {alerts_count}")
-    with st.expander("View Alerts"):
+
+    # Alert details expander
+    with st.expander(f"View Alerts ({alerts_count})", expanded=False):
         if alerts_count == 0:
-            st.success("All good — no low stock items.")
+            st.success("✅ All good — no items need reorder!")
         else:
-            st.warning("Items at/below reorder level:")
-            show_cols = [c for c in ["RM ID","Product Name","Unit","Current Stock","Reorder Level"] if c in alerts_df.columns]
-            st.dataframe(alerts_df[show_cols], use_container_width=True)
+            # Group alerts by severity
+            critical_alerts = current_alerts[current_alerts["Alert Severity"] == "Critical"]
+            high_alerts = current_alerts[current_alerts["Alert Severity"] == "High"]
+            medium_alerts = current_alerts[current_alerts["Alert Severity"] == "Medium"]
+
+            if len(critical_alerts) > 0:
+                st.error(f"🚨 **Critical: {len(critical_alerts)} items out of stock**")
+                show_cols = [c for c in ["RM ID", "Product Name", "Unit", "Current Stock", "Reorder Level"] if c in critical_alerts.columns]
+                st.dataframe(critical_alerts[show_cols], use_container_width=True)
+
+            if len(high_alerts) > 0:
+                st.warning(f"⚠️ **High Priority: {len(high_alerts)} items flagged for reorder**")
+                show_cols = [c for c in ["RM ID", "Product Name", "Unit", "Current Stock", "Reorder Level"] if c in high_alerts.columns]
+                st.dataframe(high_alerts[show_cols], use_container_width=True)
+
+            if len(medium_alerts) > 0:
+                st.info(f"ℹ️ **Medium Priority: {len(medium_alerts)} items below reorder level**")
+                show_cols = [c for c in ["RM ID", "Product Name", "Unit", "Current Stock", "Reorder Level"] if c in medium_alerts.columns]
+                st.dataframe(medium_alerts[show_cols], use_container_width=True)
+
+            # Show alert history
+            if len(st.session_state["alerts_history"]) > 1:
+                st.markdown("---")
+                st.markdown("**Alert History:**")
+                history_df = pd.DataFrame([
+                    {
+                        "Time": snapshot["timestamp"].strftime("%H:%M:%S"),
+                        "Alert Count": snapshot["alert_count"]
+                    }
+                    for snapshot in st.session_state["alerts_history"]
+                ])
+                st.dataframe(history_df, use_container_width=True)
+
 with col_refresh:
-    if st.button("Refresh Data"):
+    if st.button("🔄 Refresh"):
         load_all_data.clear()
-        st.toast("Data cache cleared. Reloading…")
+        st.toast("Data refreshed!")
         st.rerun()
 
 st.markdown("---")
 
-# KPI cards
+# KPI Cards
 total_items = inv.shape[0]
 total_value = inv["Inventory Value"].sum()
 total_in = inv["InQty"].sum()
 total_out = inv["OutQty"].sum()
 
-k1, k2, k3, k4 = st.columns(4)
+k1, k2, k3, k4, k5 = st.columns(5)
 k1.metric("Total Products", f"{total_items:,}")
-k2.metric("Total Stock In (units)", f"{int(total_in):,}")
-k3.metric("Total Stock Out (units)", f"{int(total_out):,}")
+k2.metric("Total Stock In", f"{int(total_in):,}")
+k3.metric("Total Stock Out", f"{int(total_out):,}")
 k4.metric("Inventory Value", f"₹{total_value:,.0f}")
+k5.metric("Items Needing Reorder", f"{alerts_count}", delta=f"{alerts_count - len(st.session_state['alerts_history'][-2]['alerts']) if len(st.session_state['alerts_history']) > 1 else 0}")
 
-st.markdown("")
+st.markdown("---")
 
-# Tabs
-tab_dash, tab_stock, tab_mov, tab_forms = st.tabs(["📈 Dashboard", "📋 Stock Table", "🔄 Movements", "✍️ Forms"])
+# Main content tabs
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Inventory Overview", "📈 Trends", "➕ Add Stock", "📋 Alert History"])
 
-with tab_dash:
-    c1, c2 = st.columns(2)
+with tab1:
+    st.markdown("### Current Inventory Status")
 
-    # In vs Out Trend
-    in_trend = data["in_trend"]
-    out_trend = data["out_trend"]
+    # Filters
+    col_filter1, col_filter2, col_filter3 = st.columns(3)
+    with col_filter1:
+        show_alerts_only = st.checkbox("Show alerts only", value=False)
+    with col_filter2:
+        severity_filter = st.selectbox("Alert Severity", ["All", "Critical", "High", "Medium", "None"])
+    with col_filter3:
+        search_term = st.text_input("Search products", "")
 
-    if not in_trend.empty or not out_trend.empty:
-        # Combine for plotting
-        trend = pd.DataFrame()
-        if not in_trend.empty:
-            trend = in_trend
-        if not out_trend.empty:
-            trend = trend.merge(out_trend, on="Date", how="outer")
-        trend = trend.sort_values("Date")
-        trend = trend.fillna(0)
-        with c1:
-            fig = px.line(trend, x="Date", y=["Stock In", "Stock Out"], title="Stock In vs Stock Out")
-            st.plotly_chart(fig, use_container_width=True)
+    # Apply filters
+    filtered_inv = inv.copy()
+
+    if show_alerts_only:
+        filtered_inv = filtered_inv[filtered_inv["Needs Reorder"] == True]
+
+    if severity_filter != "All":
+        filtered_inv = filtered_inv[filtered_inv["Alert Severity"] == severity_filter]
+
+    if search_term:
+        search_cols = ["RM ID", "Product Name"]
+        mask = pd.DataFrame([filtered_inv[col].astype(str).str.contains(search_term, case=False, na=False)
+                           for col in search_cols if col in filtered_inv.columns]).any()
+        filtered_inv = filtered_inv[mask]
+
+    # Display inventory table with conditional formatting
+    if len(filtered_inv) > 0:
+        display_cols = ["RM ID", "Product Name", "Unit", "Current Stock", "Reorder Level",
+                       "Unit Cost", "Inventory Value", "Alert Severity"]
+        display_cols = [col for col in display_cols if col in filtered_inv.columns]
+
+        styled_df = filtered_inv[display_cols].style.apply(highlight_stock, axis=1)
+        st.dataframe(styled_df, use_container_width=True, height=400)
+
+        # Summary stats
+        col_sum1, col_sum2, col_sum3 = st.columns(3)
+        with col_sum1:
+            st.metric("Items Displayed", len(filtered_inv))
+        with col_sum2:
+            st.metric("Total Value", f"₹{filtered_inv['Inventory Value'].sum():,.0f}")
+        with col_sum3:
+            st.metric("Avg Stock Level", f"{filtered_inv['Current Stock'].mean():.1f}")
     else:
-        with c1:
-            st.info("No dated stock movements to chart yet.")
+        st.info("No items match the current filters.")
 
-    # Current Stock by Product (Top 15)
-    show_cols = [c for c in ["RM ID", "Product Name", "Current Stock"] if c in inv.columns]
-    top_stock = inv.sort_values("Current Stock", ascending=False).head(15)
-    with c2:
-        fig2 = px.bar(top_stock, x=show_cols[1] if "Product Name" in show_cols else "RM ID", y="Current Stock",
-                      title="Top 15 Current Stock by Product")
-        st.plotly_chart(fig2, use_container_width=True)
+with tab2:
+    st.markdown("### Inventory Trends")
 
-with tab_stock:
-    st.subheader("Current Stock Snapshot")
-    search = st.text_input("Search by RM ID or Product Name").strip().lower()
-    view_df = inv.copy()
-    if search:
-        view_df = view_df[
-            view_df["_key"].str.lower().str.contains(search) |
-            (view_df["Product Name"].astype(str).str.lower().str.contains(search) if "Product Name" in view_df.columns else False)
-        ]
-    cols = [c for c in ["RM ID","Product Name","Unit","InQty","OutQty","Current Stock","Unit Cost","Inventory Value","Reorder Level"] if c in view_df.columns]
-    st.dataframe(view_df[cols], use_container_width=True)
+    # Stock In vs Stock Out over time
+    if len(data["in_trend"]) > 0 or len(data["out_trend"]) > 0:
+        fig = make_subplots(rows=2, cols=2,
+                           subplot_titles=("Stock In vs Stock Out", "Top 10 Products by Stock",
+                                         "Inventory Value Distribution", "Alert Severity Breakdown"),
+                           specs=[[{"type": "xy"}, {"type": "xy"}],
+                                   [{"type": "xy"}, {"type": "domain"}]])
 
-with tab_mov:
-    st.subheader("Stock Movements")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("**Stock In (raw)**")
-        df_in = data["df_in"].copy()
-        st.dataframe(df_in, use_container_width=True)
-    with c2:
-        st.markdown("**Stock Out (raw)**")
-        df_out = data["df_out"].copy()
-        st.dataframe(df_out, use_container_width=True)
+        # Stock In vs Stock Out trend
+        if len(data["in_trend"]) > 0:
+            fig.add_trace(go.Scatter(x=data["in_trend"]["Date"], y=data["in_trend"]["Stock In"],
+                                   name="Stock In", line=dict(color="green")), row=1, col=1)
+        if len(data["out_trend"]) > 0:
+            fig.add_trace(go.Scatter(x=data["out_trend"]["Date"], y=data["out_trend"]["Stock Out"],
+                                   name="Stock Out", line=dict(color="red")), row=1, col=1)
 
-with tab_forms:
-    st.subheader("Append Records")
+        # Top 10 products by current stock
+        top_products = inv.nlargest(10, "Current Stock")
+        fig.add_trace(go.Bar(x=top_products["Product Name"], y=top_products["Current Stock"],
+                           name="Current Stock"), row=1, col=2)
 
-    st.markdown("### ➕ Stock In")
-    with st.form("form_in"):
-        rm_id = st.text_input("RM ID (preferred)", "")
-        product = st.text_input("Product Name", "")
-        unit = st.text_input("Unit", "")
-        qty_in = st.number_input("Quantity", min_value=0.0, step=1.0)
-        cost = st.text_input("Cost per Unit (optional)", "")
-        date_in = st.date_input("Date (optional)", value=datetime.today())
+        # Inventory value distribution
+        fig.add_trace(go.Histogram(x=inv["Inventory Value"], name="Value Distribution"), row=2, col=1)
+
+        # Alert severity breakdown
+        severity_counts = inv["Alert Severity"].value_counts()
+        fig.add_trace(go.Pie(labels=severity_counts.index, values=severity_counts.values,
+                           name="Alert Severity"), row=2, col=2)
+
+        fig.update_layout(height=600, showlegend=True)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No trend data available yet.")
+
+with tab3:
+    st.markdown("### Add Stock Entry")
+
+    # Stock In Form
+    st.markdown("#### 📥 Add Stock In")
+    with st.form("stock_in_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # Get available products
+            products = inv[["RM ID", "Product Name"]].dropna()
+            product_options = [f"{row['RM ID']} - {row['Product Name']}" for _, row in products.iterrows()]
+
+            selected_product = st.selectbox("Product", product_options)
+            quantity = st.number_input("Quantity", min_value=0.0, value=1.0, step=0.1)
+            cost_per_unit = st.number_input("Cost per Unit", min_value=0.0, value=0.0, step=0.01)
+
+        with col2:
+            supplier = st.text_input("Supplier")
+            date_in = st.date_input("Date", value=date.today())
+            notes = st.text_area("Notes")
+
         submitted_in = st.form_submit_button("Add Stock In")
+
         if submitted_in:
-            row = {
+            # Extract RM ID from selection
+            rm_id = selected_product.split(" - ")[0]
+
+            stock_in_data = {
                 "RM ID": rm_id,
-                "Product Name": product,
-                "Unit": unit,
-                "Quantity": qty_in,
-                "Cost per Unit": cost,
-                "Date": date_in.strftime("%d %b %Y"),
+                "Quantity": quantity,
+                "Cost per Unit": cost_per_unit,
+                "Supplier": supplier,
+                "Date": date_in.strftime("%d/%m/%Y"),
+                "Notes": notes
             }
+
             try:
-                append_stock_in(row)
-                st.success("Stock In appended!")
-                load_all_data.clear()
+                append_stock_in(stock_in_data)
+                st.success("Stock In entry added successfully!")
+                load_all_data.clear()  # Clear cache to refresh data
             except Exception as e:
-                st.error(f"Failed to append Stock In: {e}")
+                st.error(f"Error adding stock in: {str(e)}")
 
     st.markdown("---")
 
-    st.markdown("### ➖ Stock Out")
-    with st.form("form_out"):
-        rm_id_o = st.text_input("RM ID / Product ID", "")
-        product_o = st.text_input("Product Name", "")
-        qty_out = st.number_input("Quantity Out", min_value=0.0, step=1.0)
-        remarks = st.text_input("Remarks", "")
-        to_whom = st.text_input("Distributed To", "")
-        date_out = st.date_input("Date", value=datetime.today())
+    # Stock Out Form
+    st.markdown("#### 📤 Add Stock Out")
+    with st.form("stock_out_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            selected_product_out = st.selectbox("Product (Out)", product_options)
+            quantity_out = st.number_input("Quantity Out", min_value=0.0, value=1.0, step=0.1)
+
+        with col2:
+            purpose = st.text_input("Purpose/Department")
+            date_out = st.date_input("Date (Out)", value=date.today())
+            notes_out = st.text_area("Notes (Out)")
+
         submitted_out = st.form_submit_button("Add Stock Out")
+
         if submitted_out:
-            row = {
-                "Product ID": rm_id_o,
-                "Product Name": product_o,
-                "Quantity Out": qty_out,
-                "Remarks": remarks,
-                "Distributed To": to_whom,
-                "Date": date_out.strftime("%d %b %Y"),
+            rm_id_out = selected_product_out.split(" - ")[0]
+
+            stock_out_data = {
+                "RM ID": rm_id_out,
+                "Quantity Out": quantity_out,
+                "Purpose": purpose,
+                "Date": date_out.strftime("%d/%m/%Y"),
+                "Notes": notes_out
             }
+
             try:
-                append_stock_out(row)
-                st.success("Stock Out appended!")
-                load_all_data.clear()
+                append_stock_out(stock_out_data)
+                st.success("Stock Out entry added successfully!")
+                load_all_data.clear()  # Clear cache to refresh data
             except Exception as e:
-                st.error(f"Failed to append Stock Out: {e}")
+                st.error(f"Error adding stock out: {str(e)}")
+
+with tab4:
+    st.markdown("### Alert History & Analysis")
+
+    if len(st.session_state["alerts_history"]) > 0:
+        # Alert timeline
+        st.markdown("#### Alert Timeline")
+        timeline_data = []
+        for snapshot in st.session_state["alerts_history"]:
+            timeline_data.append({
+                "Time": snapshot["timestamp"].strftime("%H:%M:%S"),
+                "Date": snapshot["timestamp"].strftime("%Y-%m-%d"),
+                "Alert Count": snapshot["alert_count"],
+                "Critical": len(snapshot["alerts"][snapshot["alerts"]["Alert Severity"] == "Critical"]),
+                "High": len(snapshot["alerts"][snapshot["alerts"]["Alert Severity"] == "High"]),
+                "Medium": len(snapshot["alerts"][snapshot["alerts"]["Alert Severity"] == "Medium"])
+            })
+
+        timeline_df = pd.DataFrame(timeline_data)
+        st.dataframe(timeline_df, use_container_width=True)
+
+        # Alert trend chart
+        if len(timeline_data) > 1:
+            fig_trend = go.Figure()
+            fig_trend.add_trace(go.Scatter(x=timeline_df["Time"], y=timeline_df["Alert Count"],
+                                         mode="lines+markers", name="Total Alerts"))
+            fig_trend.add_trace(go.Scatter(x=timeline_df["Time"], y=timeline_df["Critical"],
+                                         mode="lines+markers", name="Critical", line=dict(color="red")))
+            fig_trend.add_trace(go.Scatter(x=timeline_df["Time"], y=timeline_df["High"],
+                                         mode="lines+markers", name="High", line=dict(color="orange")))
+            fig_trend.update_layout(title="Alert Trend Over Time", xaxis_title="Time", yaxis_title="Alert Count")
+            st.plotly_chart(fig_trend, use_container_width=True)
+
+        # Current alert details
+        st.markdown("#### Current Alert Details")
+        if len(current_alerts) > 0:
+            alert_summary = current_alerts.groupby("Alert Severity").agg({
+                "RM ID": "count",
+                "Inventory Value": "sum"
+            }).rename(columns={"RM ID": "Count", "Inventory Value": "Total Value"})
+
+            col_sum1, col_sum2 = st.columns(2)
+            with col_sum1:
+                st.dataframe(alert_summary)
+            with col_sum2:
+                st.metric("Total Alert Value", f"₹{current_alerts['Inventory Value'].sum():,.0f}")
+        else:
+            st.success("No current alerts!")
+    else:
+        st.info("No alert history available yet.")
+
+    # Clear history button
+    if st.button("Clear Alert History"):
+        st.session_state["alerts_history"] = []
+        st.session_state["last_alert_snapshot"] = None
+        st.success("Alert history cleared!")
+        st.rerun()
+
+# Footer
+st.markdown("---")
+st.markdown("*Dashboard automatically refreshes every 5 minutes. Click 'Refresh' for immediate updates.*")
