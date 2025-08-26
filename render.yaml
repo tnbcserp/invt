@@ -3,8 +3,8 @@ services:
     name: inventory-dashboard
     env: python
     plan: free
-    pythonVersion: "3.10"
-    buildCommand: pip install --only-binary=all -r requirements.txt
+    pythonVersion: "3.11"
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
     startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       - key: GOOGLE_CREDENTIALS_JSON
