@@ -517,7 +517,7 @@ def load_all_data():
             ws_raw = sh.worksheet("Raw Material Master")
             ws_in = sh.worksheet("Stock In")
             ws_out = sh.worksheet("Stock Out")
-            ws_inventory = sh.worksheet("Inventory Sheet")
+            ws_inventory = sh.worksheet("Inventory")
             ws_supplier = sh.worksheet("Supplier Master")
             ws_report = sh.worksheet("Report Sheet")
             ws_staff = sh.worksheet("Staff Sheet")
@@ -670,7 +670,7 @@ def show_inventory_sheet(metrics: Dict, data: Dict):
     # System Overview as per user manual
     st.markdown("### 📋 System Structure Overview")
     st.info("""
-    **Core Sheets:** Raw Material Master, Stock In, Stock Out, Inventory Sheet, Supplier Master
+    **Core Sheets:** Raw Material Master, Stock In, Stock Out, Inventory, Supplier Master
     **Support Sheets:** Dropdown Lists, Report Sheet, Staff Sheet, Partner Sheet
     **Features:** Automatic reorder alerts, real-time stock tracking, consumption monitoring, expiry tracking, FIFO inventory management
     """)
@@ -1128,23 +1128,23 @@ def show_report_sheet(data: Dict, metrics: Dict):
     total_raw_records = len(data.get("raw_data", []))
     total_in_records = len(data.get("in_data", []))
     total_out_records = len(data.get("out_data", []))
-    
+
     cleaned_raw_records = len(cleaned_data["raw_data"])
     cleaned_in_records = len(cleaned_data["in_data"])
     cleaned_out_records = len(cleaned_data["out_data"])
-    
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         raw_quality = (cleaned_raw_records / max(total_raw_records, 1)) * 100
         st.metric("Raw Material Quality", f"{raw_quality:.1f}%")
         st.caption(f"{cleaned_raw_records}/{total_raw_records} valid records")
-    
+
     with col2:
         in_quality = (cleaned_in_records / max(total_in_records, 1)) * 100
         st.metric("Stock In Quality", f"{in_quality:.1f}%")
         st.caption(f"{cleaned_in_records}/{total_in_records} valid records")
-    
+
     with col3:
         out_quality = (cleaned_out_records / max(total_out_records, 1)) * 100
         st.metric("Stock Out Quality", f"{out_quality:.1f}%")
@@ -1184,7 +1184,7 @@ def show_report_sheet(data: Dict, metrics: Dict):
         "Raw Material Master": len(data.get("raw_data", [])),
         "Stock In": len(data.get("in_data", [])),
         "Stock Out": len(data.get("out_data", [])),
-        "Inventory Sheet": len(data.get("inventory_data", [])),
+        "Inventory": len(data.get("inventory_data", [])),
         "Supplier Master": len(data.get("supplier_data", [])),
         "Staff Sheet": len(data.get("staff_data", [])),
         "Partner Sheet": len(data.get("partner_data", []))
