@@ -147,66 +147,7 @@ def apply_custom_css():
         }}
     }}
 
-    /* Floating Action Button */
-    .fab {{
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        width: 60px;
-        height: 60px;
-        background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.5rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        cursor: pointer;
-        transition: all 0.3s ease;
-        z-index: 1000;
-        text-decoration: none;
-    }}
-
-    .fab:hover {{
-        transform: scale(1.1);
-        box-shadow: 0 6px 25px rgba(0,0,0,0.4);
-        color: white;
-        text-decoration: none;
-    }}
-
-    /* Quick Navigation Menu */
-    .quick-nav {{
-        position: fixed;
-        bottom: 5rem;
-        right: 2rem;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        padding: 1rem;
-        display: none;
-        z-index: 999;
-    }}
-
-    .quick-nav.show {{
-        display: block;
-    }}
-
-    .quick-nav-item {{
-        display: block;
-        padding: 0.5rem 1rem;
-        color: {colors['text']};
-        text-decoration: none;
-        border-radius: 5px;
-        margin: 0.2rem 0;
-        transition: background 0.2s ease;
-    }}
-
-    .quick-nav-item:hover {{
-        background: {colors['light']};
-        color: {colors['text']};
-        text-decoration: none;
-    }}
+    
 
     /* Navigation Cards - Excellent UX */
     .nav-card {{
@@ -731,52 +672,47 @@ def load_all_data():
         SHEET_ID = "1G_q_d4Kg35PWBWb49f5FWmoYAnA4k0TYAg4QzIM4N24"
         sh = gc.open_by_key(SHEET_ID)
 
-        # Load all worksheets as per system structure with comprehensive fallback handling
+        # Load all worksheets as per system structure with minimal user feedback
         sheets_loaded = {}
         sheets_errors = {}
 
-        # Define all possible sheets
+        # Define all possible sheets (removed Partner Sheet)
         sheet_names = [
             "Raw Material Master",
             "Stock In",
             "Stock Out",
             "Inventory",
             "Supplier Master",
-            "Report",
-            "Partner Sheet"
+            "Report"
         ]
 
-        # Try to load each sheet individually with detailed error tracking
+        # Try to load each sheet individually with minimal user feedback
         for sheet_name in sheet_names:
             try:
                 ws = sh.worksheet(sheet_name)
                 sheets_loaded[sheet_name] = ws
-                st.success(f"✅ Loaded: {sheet_name}")
             except Exception as e:
                 sheets_errors[sheet_name] = str(e)
-                st.error(f"❌ Failed to load: {sheet_name} - {str(e)}")
+        
+        # Only show errors if critical sheets are missing
+        critical_sheets = ["Raw Material Master", "Stock In", "Stock Out"]
+        missing_critical = [sheet for sheet in critical_sheets if sheet in sheets_errors]
+        
+        if missing_critical:
+            st.error(f"⚠️ Critical sheets missing: {', '.join(missing_critical)}")
+            return None
 
-        # Report loading status
-        if sheets_errors:
-            st.warning(f"⚠️ **Loading Issues Found:** {len(sheets_errors)} sheets failed to load")
-            for sheet, error in sheets_errors.items():
-                st.write(f"  - **{sheet}:** {error}")
-        else:
-            st.success("🎉 **All sheets loaded successfully!**")
-
-        # Get all records from available sheets with comprehensive fallback handling
+        # Get all records from available sheets with minimal feedback
         data = {}
-        data_errors = {}
 
-        # Map sheet names to data keys
+        # Map sheet names to data keys (removed Partner Sheet)
         sheet_data_mapping = {
             "Raw Material Master": "raw_data",
             "Stock In": "in_data",
             "Stock Out": "out_data",
             "Inventory": "inventory_data",
             "Supplier Master": "supplier_data",
-            "Report": "report_data",
-            "Partner Sheet": "partner_data"
+            "Report": "report_data"
         }
 
         # Load data from each successfully loaded sheet
@@ -786,30 +722,13 @@ def load_all_data():
                 try:
                     records = ws.get_all_records()
                     data[data_key] = records
-                    st.success(f"📊 Loaded {len(records)} records from {sheet_name}")
                 except Exception as e:
                     data[data_key] = []
-                    data_errors[sheet_name] = f"Failed to get records: {str(e)}"
-                    st.error(f"❌ Failed to get records from {sheet_name}: {str(e)}")
-
+        
         # Initialize empty arrays for missing sheets
         for data_key in sheet_data_mapping.values():
             if data_key not in data:
                 data[data_key] = []
-                st.warning(f"⚠️ No data for {data_key} (sheet not found)")
-
-        # Report data loading status
-        if data_errors:
-            st.error("🚨 **Data Loading Issues:**")
-            for sheet, error in data_errors.items():
-                st.write(f"  - **{sheet}:** {error}")
-        else:
-            st.success("📊 **All data loaded successfully!**")
-
-        # Show data summary
-        st.info("📋 **Data Summary:**")
-        for data_key, records in data.items():
-            st.write(f"  - **{data_key}:** {len(records)} records")
 
         return data
     except Exception as e:
@@ -848,49 +767,39 @@ def main():
     if 'current_page' not in st.session_state:
         st.session_state.current_page = "dashboard"
 
-    # Load data with loading indicator and comprehensive error handling
+        # Load data with minimal user feedback
     try:
-        with st.spinner("Loading inventory data..."):
-            data = load_all_data()
+        data = load_all_data()
 
-            if data is None:
-                st.error("❌ **Critical Error:** Unable to load data. Please check your Google Sheets connection and credentials.")
-                st.error("**Troubleshooting Steps:**")
-                st.write("1. Verify Google Sheets credentials are correct")
-                st.write("2. Check if the sheet ID is correct")
-                st.write("3. Ensure the service account has access to the sheets")
-                st.write("4. Check your internet connection")
-                st.stop()
+        if data is None:
+            st.error("❌ Unable to load data. Please check your Google Sheets connection.")
+            st.stop()
 
-            # Calculate inventory metrics with error handling
-            try:
-                metrics = calculate_inventory_metrics(data)
-                st.success("✅ **Data loaded and processed successfully!**")
-            except Exception as e:
-                st.error(f"❌ **Metrics Calculation Failed:** {str(e)}")
-                st.error("**Fallback:** Using default metrics")
-                # Provide safe default metrics
-                metrics = {
-                    "total_products": 0,
-                    "total_value": 0.0,
-                    "critical_items": 0,
-                    "low_stock_items": 0,
-                    "out_of_stock_items": 0,
-                    "high_value_items": 0,
-                    "total_in": 0.0,
-                    "total_out": 0.0,
-                    "alert_items": [],
-                    "avg_cost_per_unit": 0.0,
-                    "total_reorder_value": 0.0,
-                    "stock_turnover_rate": 0.0
-                }
-
+        # Calculate inventory metrics with error handling
+        try:
+            metrics = calculate_inventory_metrics(data)
+        except Exception as e:
+            # Provide safe default metrics
+            metrics = {
+                "total_products": 0,
+                "total_value": 0.0,
+                "critical_items": 0,
+                "low_stock_items": 0,
+                "out_of_stock_items": 0,
+                "high_value_items": 0,
+                "total_in": 0.0,
+                "total_out": 0.0,
+                "alert_items": [],
+                "avg_cost_per_unit": 0.0,
+                "total_reorder_value": 0.0,
+                "stock_turnover_rate": 0.0
+            }
+                
     except Exception as e:
-        st.error(f"❌ **Application Error:** {str(e)}")
-        st.error("**Application failed to start. Please check the logs and try again.**")
+        st.error(f"❌ Application Error: {str(e)}")
         st.stop()
 
-    # Global Navigation Bar
+    # Clean Top Global Navigation
     st.markdown("""
     <div class="global-nav">
         <div class="nav-container">
@@ -996,9 +905,9 @@ def main():
         # Quick Actions
         if st.button("🔄 **Update Stock**\n\nGet latest ingredient counts",
                     use_container_width=True, key="nav_refresh"):
-            load_all_data.clear()
+        load_all_data.clear()
             st.success("Stock updated!")
-            st.rerun()
+        st.rerun()
 
     # Main content based on selected page with error handling
     try:
@@ -1024,43 +933,7 @@ def main():
             st.error(f"❌ **Critical Error:** Even fallback failed: {str(fallback_error)}")
             st.error("**Please refresh the page or contact support.**")
 
-    # Floating Action Button for Quick Navigation
-    st.markdown("""
-    <div class="fab" onclick="toggleQuickNav()">
-        🏠
-    </div>
-
-    <div class="quick-nav" id="quickNav">
-        <a href="#" class="quick-nav-item" onclick="navigateTo('dashboard')">📊 Kitchen</a>
-        <a href="#" class="quick-nav-item" onclick="navigateTo('alerts')">🚨 Alerts</a>
-        <a href="#" class="quick-nav-item" onclick="navigateTo('products')">📦 Ingredients</a>
-        <a href="#" class="quick-nav-item" onclick="navigateTo('reports')">📈 Reports</a>
-        <a href="#" class="quick-nav-item" onclick="navigateTo('settings')">⚙️ Settings</a>
-    </div>
-
-    <script>
-    function toggleQuickNav() {
-        const nav = document.getElementById('quickNav');
-        nav.classList.toggle('show');
-    }
-
-    function navigateTo(page) {
-        // This would need to be integrated with Streamlit's session state
-        console.log('Navigate to:', page);
-        // For now, just hide the menu
-        document.getElementById('quickNav').classList.remove('show');
-    }
-
-    // Close quick nav when clicking outside
-    document.addEventListener('click', function(event) {
-        const fab = document.querySelector('.fab');
-        const nav = document.getElementById('quickNav');
-        if (!fab.contains(event.target) && !nav.contains(event.target)) {
-            nav.classList.remove('show');
-        }
-    });
-    </script>
-    """, unsafe_allow_html=True)
+    
 
 def show_inventory_sheet(metrics: Dict, data: Dict):
     """Kitchen Overview - Main dashboard for restaurant inventory"""
@@ -1101,7 +974,7 @@ def show_inventory_sheet(metrics: Dict, data: Dict):
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("---")
+st.markdown("---")
 
     # Kitchen Overview Key Metrics
     st.markdown("### 📊 Kitchen Overview - Key Metrics")
@@ -1583,18 +1456,16 @@ def show_report_sheet(data: Dict, metrics: Dict):
         st.metric("Usage Data Quality", f"{out_quality:.1f}%")
         st.caption(f"{cleaned_out_records}/{total_out_records} valid records")
 
-            # Kitchen Usage Tracking
+                # Kitchen Usage Tracking
     st.markdown("### 📊 Kitchen Usage Tracking")
-
-    st.markdown("#### 🤝 Partner Usage Monitoring")
+    
     st.info("""
-    - Partner-specific ingredient usage
-    - Comparative consumption analysis
-    - Billing support information
-    - Individual cost breakdowns
+    **Usage Analytics:**
+    - Ingredient consumption patterns
+    - Stock movement analysis
+    - Cost tracking and optimization
+    - Reorder recommendations
     """)
-    partner_records = len(data.get("partner_data", []))
-    st.metric("Partner Records", partner_records)
 
     # Kitchen Sheets Overview
     st.markdown("### 📋 Kitchen Sheets Overview")
@@ -1605,8 +1476,7 @@ def show_report_sheet(data: Dict, metrics: Dict):
         "Stock Out": len(data.get("out_data", [])),
         "Inventory": len(data.get("inventory_data", [])),
         "Supplier Master": len(data.get("supplier_data", [])),
-        "Report": len(data.get("report_data", [])),
-        "Partner Sheet": len(data.get("partner_data", []))
+        "Report": len(data.get("report_data", []))
     }
 
     for sheet_name, record_count in sheet_stats.items():
