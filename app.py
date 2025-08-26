@@ -40,7 +40,8 @@ def get_theme_colors():
             "error": "#ff6b6b",
             "info": "#74b9ff",
             "border": "#404040",
-            "hover": "#1e1e1e"
+            "hover": "#1e1e1e",
+            "light": "#404040"
         }
     else:
         return {
@@ -55,7 +56,8 @@ def get_theme_colors():
             "error": "#ff6b6b",
             "info": "#74b9ff",
             "border": "#e0e0e0",
-            "hover": "#f8f9fa"
+            "hover": "#f8f9fa",
+            "light": "#f8f9fa"
         }
 
 def apply_custom_css():
@@ -69,7 +71,7 @@ def apply_custom_css():
         background-color: {colors['background']} !important;
         color: {colors['text']} !important;
     }}
-    
+
     /* Global Navigation Styles */
     .global-nav {{
         background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
@@ -80,7 +82,7 @@ def apply_custom_css():
         top: 0;
         z-index: 1000;
     }}
-    
+
     .nav-container {{
         display: flex;
         justify-content: space-between;
@@ -89,20 +91,20 @@ def apply_custom_css():
         max-width: 1200px;
         margin: 0 auto;
     }}
-    
+
     .nav-brand h2 {{
         color: white;
         margin: 0;
         font-size: 1.2rem;
         font-weight: 600;
     }}
-    
+
     .nav-links {{
         display: flex;
         gap: 1rem;
         align-items: center;
     }}
-    
+
     .nav-link {{
         color: white;
         text-decoration: none;
@@ -112,20 +114,20 @@ def apply_custom_css():
         font-weight: 500;
         font-size: 0.9rem;
     }}
-    
+
     .nav-link:hover {{
         background: rgba(255,255,255,0.2);
         color: white;
         text-decoration: none;
         transform: translateY(-1px);
     }}
-    
+
     .nav-link.active {{
         background: rgba(255,255,255,0.3);
         color: white;
         font-weight: 600;
     }}
-    
+
     /* Responsive Navigation */
     @media (max-width: 768px) {{
         .nav-container {{
@@ -133,18 +135,18 @@ def apply_custom_css():
             gap: 1rem;
             padding: 1rem;
         }}
-        
+
         .nav-links {{
             flex-wrap: wrap;
             justify-content: center;
         }}
-        
+
         .nav-link {{
             font-size: 0.8rem;
             padding: 0.4rem 0.8rem;
         }}
     }}
-    
+
     /* Floating Action Button */
     .fab {{
         position: fixed;
@@ -165,14 +167,14 @@ def apply_custom_css():
         z-index: 1000;
         text-decoration: none;
     }}
-    
+
     .fab:hover {{
         transform: scale(1.1);
         box-shadow: 0 6px 25px rgba(0,0,0,0.4);
         color: white;
         text-decoration: none;
     }}
-    
+
     /* Quick Navigation Menu */
     .quick-nav {{
         position: fixed;
@@ -185,11 +187,11 @@ def apply_custom_css():
         display: none;
         z-index: 999;
     }}
-    
+
     .quick-nav.show {{
         display: block;
     }}
-    
+
     .quick-nav-item {{
         display: block;
         padding: 0.5rem 1rem;
@@ -199,7 +201,7 @@ def apply_custom_css():
         margin: 0.2rem 0;
         transition: background 0.2s ease;
     }}
-    
+
     .quick-nav-item:hover {{
         background: {colors['light']};
         color: {colors['text']};
@@ -906,7 +908,7 @@ def main():
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
+
     # Main header
     st.markdown("""
     <div class="main-header">
@@ -925,74 +927,74 @@ def main():
 
         # Home button and current page indicator
     st.markdown("---")
-    
+
     # Current page indicator
     current_page_names = {
         "dashboard": "📊 Kitchen Overview",
-        "alerts": "🚨 Reorder Reminders", 
+        "alerts": "🚨 Reorder Reminders",
         "products": "📦 Ingredient List",
         "reports": "📈 Kitchen Reports",
         "settings": "⚙️ Kitchen Settings"
     }
-    
+
     current_page_name = current_page_names.get(st.session_state.current_page, "🏠 Home")
-    
+
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown(f"""
-        <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+        <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     border-radius: 10px; color: white; margin: 1rem 0;">
             <h3>📍 Currently Viewing: {current_page_name}</h3>
         </div>
         """, unsafe_allow_html=True)
-    
+
     # Home button
     if st.button("🏠 **Back to Home**", use_container_width=True, key="nav_home"):
         st.session_state.current_page = "dashboard"
         st.rerun()
-    
+
     st.markdown("---")
-    
+
     # Navigation with value propositions
     st.markdown("### 🎯 What would you like to check today?")
-    
+
     # Create navigation grid
     col1, col2 = st.columns(2)
-    
+
     with col1:
         # Dashboard/Overview
-        if st.button("📊 **Kitchen Overview**\n\nSee all your ingredients and supplies at a glance", 
+        if st.button("📊 **Kitchen Overview**\n\nSee all your ingredients and supplies at a glance",
                     use_container_width=True, key="nav_dashboard"):
             st.session_state.current_page = "dashboard"
             st.rerun()
-        
+
         # Alerts
-        if st.button("🚨 **Reorder Reminders**\n\nIngredients that need to be ordered soon", 
+        if st.button("🚨 **Reorder Reminders**\n\nIngredients that need to be ordered soon",
                     use_container_width=True, key="nav_alerts"):
             st.session_state.current_page = "alerts"
             st.rerun()
-        
+
         # Products
-        if st.button("📦 **Ingredient List**\n\nManage all your kitchen ingredients and costs", 
+        if st.button("📦 **Ingredient List**\n\nManage all your kitchen ingredients and costs",
                     use_container_width=True, key="nav_products"):
             st.session_state.current_page = "products"
             st.rerun()
-    
+
     with col2:
         # Reports
-        if st.button("📈 **Kitchen Reports**\n\nSee usage patterns and cost analysis", 
+        if st.button("📈 **Kitchen Reports**\n\nSee usage patterns and cost analysis",
                     use_container_width=True, key="nav_reports"):
             st.session_state.current_page = "reports"
             st.rerun()
-        
+
         # Settings
-        if st.button("⚙️ **Kitchen Settings**\n\nSet reorder levels and alerts", 
+        if st.button("⚙️ **Kitchen Settings**\n\nSet reorder levels and alerts",
                     use_container_width=True, key="nav_settings"):
             st.session_state.current_page = "settings"
             st.rerun()
-        
+
         # Quick Actions
-        if st.button("🔄 **Update Stock**\n\nGet latest ingredient counts", 
+        if st.button("🔄 **Update Stock**\n\nGet latest ingredient counts",
                     use_container_width=True, key="nav_refresh"):
             load_all_data.clear()
             st.success("Stock updated!")
@@ -1021,13 +1023,13 @@ def main():
         except Exception as fallback_error:
             st.error(f"❌ **Critical Error:** Even fallback failed: {str(fallback_error)}")
             st.error("**Please refresh the page or contact support.**")
-    
+
     # Floating Action Button for Quick Navigation
     st.markdown("""
     <div class="fab" onclick="toggleQuickNav()">
         🏠
     </div>
-    
+
     <div class="quick-nav" id="quickNav">
         <a href="#" class="quick-nav-item" onclick="navigateTo('dashboard')">📊 Kitchen</a>
         <a href="#" class="quick-nav-item" onclick="navigateTo('alerts')">🚨 Alerts</a>
@@ -1035,20 +1037,20 @@ def main():
         <a href="#" class="quick-nav-item" onclick="navigateTo('reports')">📈 Reports</a>
         <a href="#" class="quick-nav-item" onclick="navigateTo('settings')">⚙️ Settings</a>
     </div>
-    
+
     <script>
     function toggleQuickNav() {
         const nav = document.getElementById('quickNav');
         nav.classList.toggle('show');
     }
-    
+
     function navigateTo(page) {
         // This would need to be integrated with Streamlit's session state
         console.log('Navigate to:', page);
         // For now, just hide the menu
         document.getElementById('quickNav').classList.remove('show');
     }
-    
+
     // Close quick nav when clicking outside
     document.addEventListener('click', function(event) {
         const fab = document.querySelector('.fab');
@@ -1447,38 +1449,38 @@ def show_report_sheet(data: Dict, metrics: Dict):
 
         # Kitchen Cost Analytics
     st.markdown("### 💰 Kitchen Cost Analytics")
-    
+
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         st.metric("Total Ingredient Value", f"₹{metrics['total_value']:,.0f}")
         st.caption("Current Stock × Unit Cost")
-    
+
     with col2:
         st.metric("Average Cost per Unit", f"₹{metrics['avg_cost_per_unit']:,.2f}")
         st.caption("Average ingredient cost")
-    
+
     with col3:
         st.metric("Total Reorder Value", f"₹{metrics['total_reorder_value']:,.0f}")
         st.caption("Cost to restock needed items")
-    
+
     with col4:
         st.metric("Usage Rate", f"{metrics['stock_turnover_rate']:.2f}")
         st.caption("How fast ingredients are used")
 
         # Kitchen Usage Analysis
     st.markdown("### 📦 Kitchen Usage Analysis")
-    
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.metric("Ingredients Received", f"{metrics['total_in']:,.0f}")
         st.caption("Units received this period")
-    
+
     with col2:
         st.metric("Ingredients Used", f"{metrics['total_out']:,.0f}")
         st.caption("Units consumed this period")
-    
+
     with col3:
         net_movement = metrics['total_in'] - metrics['total_out']
         st.metric("Net Change", f"{net_movement:,.0f}")
@@ -1486,10 +1488,10 @@ def show_report_sheet(data: Dict, metrics: Dict):
 
         # Ingredient Value Analysis
     st.markdown("### 📊 Ingredient Value Analysis")
-    
+
     # Use cleaned data for accurate calculations
     cleaned_data = clean_and_validate_data(data)
-    
+
     high_value_items = []
     medium_value_items = []
     low_value_items = []
@@ -1528,23 +1530,23 @@ def show_report_sheet(data: Dict, metrics: Dict):
 
         # Kitchen Alert Analysis
     st.markdown("### 🚨 Kitchen Alert Analysis")
-    
+
     if metrics["alert_items"]:
         critical_alerts = [item for item in metrics["alert_items"] if item["status"] == "critical"]
         warning_alerts = [item for item in metrics["alert_items"] if item["status"] == "warning"]
-        
+
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
             critical_value = sum(item.get("stock_value", 0) for item in critical_alerts)
             st.metric("Critical Items Value", f"₹{critical_value:,.0f}")
             st.caption(f"{len(critical_alerts)} ingredients")
-        
+
         with col2:
             warning_value = sum(item.get("stock_value", 0) for item in warning_alerts)
             st.metric("Warning Items Value", f"₹{warning_value:,.0f}")
             st.caption(f"{len(warning_alerts)} ingredients")
-        
+
         with col3:
             total_alert_value = critical_value + warning_value
             st.metric("Total Alert Value", f"₹{total_alert_value:,.0f}")
@@ -1554,28 +1556,28 @@ def show_report_sheet(data: Dict, metrics: Dict):
 
         # Kitchen Data Quality
     st.markdown("### 🔍 Kitchen Data Quality")
-    
+
     # Calculate data quality metrics
     total_raw_records = len(data.get("raw_data", []))
     total_in_records = len(data.get("in_data", []))
     total_out_records = len(data.get("out_data", []))
-    
+
     cleaned_raw_records = len(cleaned_data["raw_data"])
     cleaned_in_records = len(cleaned_data["in_data"])
     cleaned_out_records = len(cleaned_data["out_data"])
-    
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         raw_quality = (cleaned_raw_records / max(total_raw_records, 1)) * 100
         st.metric("Ingredient Data Quality", f"{raw_quality:.1f}%")
         st.caption(f"{cleaned_raw_records}/{total_raw_records} valid records")
-    
+
     with col2:
         in_quality = (cleaned_in_records / max(total_in_records, 1)) * 100
         st.metric("Receiving Data Quality", f"{in_quality:.1f}%")
         st.caption(f"{cleaned_in_records}/{total_in_records} valid records")
-    
+
     with col3:
         out_quality = (cleaned_out_records / max(total_out_records, 1)) * 100
         st.metric("Usage Data Quality", f"{out_quality:.1f}%")
@@ -1583,7 +1585,7 @@ def show_report_sheet(data: Dict, metrics: Dict):
 
             # Kitchen Usage Tracking
     st.markdown("### 📊 Kitchen Usage Tracking")
-    
+
     st.markdown("#### 🤝 Partner Usage Monitoring")
     st.info("""
     - Partner-specific ingredient usage
