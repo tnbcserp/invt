@@ -147,7 +147,7 @@ def apply_custom_css():
         }}
     }}
 
-    
+
 
     /* Navigation Cards - Excellent UX */
     .nav-card {{
@@ -693,11 +693,11 @@ def load_all_data():
                 sheets_loaded[sheet_name] = ws
             except Exception as e:
                 sheets_errors[sheet_name] = str(e)
-        
+
         # Only show errors if critical sheets are missing
         critical_sheets = ["Raw Material Master", "Stock In", "Stock Out"]
         missing_critical = [sheet for sheet in critical_sheets if sheet in sheets_errors]
-        
+
         if missing_critical:
             st.error(f"⚠️ Critical sheets missing: {', '.join(missing_critical)}")
             return None
@@ -724,7 +724,7 @@ def load_all_data():
                     data[data_key] = records
                 except Exception as e:
                     data[data_key] = []
-        
+
         # Initialize empty arrays for missing sheets
         for data_key in sheet_data_mapping.values():
             if data_key not in data:
@@ -794,7 +794,7 @@ def main():
                 "total_reorder_value": 0.0,
                 "stock_turnover_rate": 0.0
             }
-                
+
     except Exception as e:
         st.error(f"❌ Application Error: {str(e)}")
         st.stop()
@@ -905,9 +905,9 @@ def main():
         # Quick Actions
         if st.button("🔄 **Update Stock**\n\nGet latest ingredient counts",
                     use_container_width=True, key="nav_refresh"):
-        load_all_data.clear()
+            load_all_data.clear()
             st.success("Stock updated!")
-        st.rerun()
+            st.rerun()
 
     # Main content based on selected page with error handling
     try:
@@ -933,7 +933,7 @@ def main():
             st.error(f"❌ **Critical Error:** Even fallback failed: {str(fallback_error)}")
             st.error("**Please refresh the page or contact support.**")
 
-    
+
 
 def show_inventory_sheet(metrics: Dict, data: Dict):
     """Kitchen Overview - Main dashboard for restaurant inventory"""
@@ -974,7 +974,7 @@ def show_inventory_sheet(metrics: Dict, data: Dict):
         </div>
         """, unsafe_allow_html=True)
 
-st.markdown("---")
+    st.markdown("---")
 
     # Kitchen Overview Key Metrics
     st.markdown("### 📊 Kitchen Overview - Key Metrics")
@@ -1458,7 +1458,7 @@ def show_report_sheet(data: Dict, metrics: Dict):
 
                 # Kitchen Usage Tracking
     st.markdown("### 📊 Kitchen Usage Tracking")
-    
+
     st.info("""
     **Usage Analytics:**
     - Ingredient consumption patterns
