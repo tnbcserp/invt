@@ -59,7 +59,7 @@ def get_theme_colors():
         }
 
 def apply_custom_css():
-    """Apply optimized CSS with theme support"""
+    """Apply optimized CSS with theme support and excellent UX"""
     colors = get_theme_colors()
 
     st.markdown(f"""
@@ -68,6 +68,47 @@ def apply_custom_css():
     .stApp {{
         background-color: {colors['background']} !important;
         color: {colors['text']} !important;
+    }}
+
+    /* Navigation Cards - Excellent UX */
+    .nav-card {{
+        background: {colors['surface']};
+        padding: 1.5rem;
+        border-radius: 15px;
+        border: 2px solid transparent;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        margin: 0.5rem 0;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+    }}
+
+    .nav-card:hover {{
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        border-color: {colors['primary']};
+    }}
+
+    .nav-card.active {{
+        border-color: {colors['primary']};
+        background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);
+    }}
+
+    /* Value Proposition Cards */
+    .value-card {{
+        background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        margin: 0.5rem 0;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }}
+
+    .value-card:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
     }}
 
     /* Modern Card Styling with Theme Support */
@@ -171,6 +212,23 @@ def apply_custom_css():
         box-shadow: 0 8px 32px rgba(0,0,0,0.1);
     }}
 
+    /* Quick Action Buttons */
+    .quick-action {{
+        background: {colors['surface']};
+        padding: 1rem;
+        border-radius: 10px;
+        border: 2px solid {colors['border']};
+        transition: all 0.2s ease;
+        text-align: center;
+        cursor: pointer;
+    }}
+
+    .quick-action:hover {{
+        border-color: {colors['primary']};
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }}
+
     /* Alert Bell Animation */
     .alert-bell {{
         animation: shake 0.5s ease-in-out infinite;
@@ -195,7 +253,7 @@ def apply_custom_css():
 
     /* Responsive Design */
     @media (max-width: 768px) {{
-        .metric-card, .alert-card, .success-card, .warning-card, .info-card {{
+        .metric-card, .alert-card, .success-card, .warning-card, .info-card, .nav-card {{
             margin: 0.25rem 0;
             padding: 1rem;
         }}
@@ -519,7 +577,7 @@ def load_all_data():
             ws_out = sh.worksheet("Stock Out")
             ws_inventory = sh.worksheet("Inventory")
             ws_supplier = sh.worksheet("Supplier Master")
-            ws_report = sh.worksheet("Report Sheet")
+            ws_report = sh.worksheet("Report")
             ws_staff = sh.worksheet("Staff Sheet")
             ws_partner = sh.worksheet("Partner Sheet")
         except Exception as e:
@@ -592,46 +650,13 @@ def create_product_card(product: Dict, colors: Dict):
 
 # ============== Main Application ==============
 def main():
-    """Main application with optimized performance"""
+    """Main application with excellent UX and minimal learning curve"""
     # Apply custom CSS with theme support
     apply_custom_css()
 
     # Initialize session state for performance
     if 'current_page' not in st.session_state:
-        st.session_state.current_page = "📊 Dashboard"
-
-    # Sidebar for navigation and settings
-    with st.sidebar:
-        st.markdown("## 📦 Inventory Management System")
-        st.markdown("### Navigation")
-
-        # Theme selector
-        theme_mode = st.selectbox(
-            "Theme Mode",
-            ["Light", "Dark", "Auto"],
-            help="Choose your preferred theme"
-        )
-
-        # Navigation based on system structure from user manual
-        page = st.selectbox(
-            "Choose a page:",
-            ["📊 Inventory Sheet", "🚨 Reorder Alerts", "📦 Raw Material Master", "📈 Report Sheet", "⚙️ System Settings"],
-            key="page_selector"
-        )
-
-        st.markdown("---")
-        st.markdown("### Quick Actions")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🔄 Refresh", use_container_width=True):
-                load_all_data.clear()
-                st.success("Data refreshed!")
-                st.rerun()
-
-        with col2:
-            if st.button("📧 Alerts", use_container_width=True):
-                st.info("Alert report feature coming soon!")
+        st.session_state.current_page = "dashboard"
 
     # Load data with loading indicator
     with st.spinner("Loading inventory data..."):
@@ -644,35 +669,87 @@ def main():
         # Calculate inventory metrics
         metrics = calculate_inventory_metrics(data)
 
-    # Main content based on selected page (matching user manual structure)
-    if page == "📊 Inventory Sheet":
+    # Main header
+    st.markdown("""
+    <div class="main-header">
+        <h1>📦 Inventory Management System</h1>
+        <p>Google Sheets-Based Stock Control Solution - Real-time inventory management</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Quick status overview
+    if metrics["alert_items"]:
+        critical_count = len([item for item in metrics["alert_items"] if item["status"] == "critical"])
+        st.warning(f"🚨 **{critical_count} Critical Alerts** - Immediate action required!")
+    else:
+        st.success("✅ **All Systems Operational** - No critical alerts")
+
+    # Navigation with value propositions
+    st.markdown("### 🎯 What would you like to do today?")
+    
+    # Create navigation grid
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Dashboard/Overview
+        if st.button("📊 **Dashboard Overview**\n\nSee your complete inventory status at a glance", 
+                    use_container_width=True, key="nav_dashboard"):
+            st.session_state.current_page = "dashboard"
+            st.rerun()
+        
+        # Alerts
+        if st.button("🚨 **Reorder Alerts**\n\nItems that need immediate attention", 
+                    use_container_width=True, key="nav_alerts"):
+            st.session_state.current_page = "alerts"
+            st.rerun()
+        
+        # Products
+        if st.button("📦 **Product Database**\n\nManage all your products and specifications", 
+                    use_container_width=True, key="nav_products"):
+            st.session_state.current_page = "products"
+            st.rerun()
+    
+    with col2:
+        # Reports
+        if st.button("📈 **Reports & Analytics**\n\nData-driven insights and trends", 
+                    use_container_width=True, key="nav_reports"):
+            st.session_state.current_page = "reports"
+            st.rerun()
+        
+        # Settings
+        if st.button("⚙️ **System Settings**\n\nConfigure alerts and preferences", 
+                    use_container_width=True, key="nav_settings"):
+            st.session_state.current_page = "settings"
+            st.rerun()
+        
+        # Quick Actions
+        if st.button("🔄 **Refresh Data**\n\nGet latest inventory updates", 
+                    use_container_width=True, key="nav_refresh"):
+            load_all_data.clear()
+            st.success("Data refreshed!")
+            st.rerun()
+
+    # Main content based on selected page
+    if st.session_state.current_page == "dashboard":
         show_inventory_sheet(metrics, data)
-    elif page == "🚨 Reorder Alerts":
+    elif st.session_state.current_page == "alerts":
         show_reorder_alerts(metrics)
-    elif page == "📦 Raw Material Master":
+    elif st.session_state.current_page == "products":
         show_raw_material_master(data, metrics)
-    elif page == "📈 Report Sheet":
+    elif st.session_state.current_page == "reports":
         show_report_sheet(data, metrics)
-    elif page == "⚙️ System Settings":
+    elif st.session_state.current_page == "settings":
         show_settings()
+    else:
+        show_inventory_sheet(metrics, data)  # Default to dashboard
 
 def show_inventory_sheet(metrics: Dict, data: Dict):
     """Inventory Sheet - Main command center as per user manual"""
 
-    # Header
-    st.markdown("""
-    <div class="main-header">
-        <h1>📦 Inventory Management System</h1>
-        <p>Google Sheets-Based Stock Control Solution - Real-time inventory status and overview</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # System Overview as per user manual
-    st.markdown("### 📋 System Structure Overview")
+    # Value proposition for this page
+    st.markdown("### 📊 **Dashboard Overview** - Your Complete Inventory Status")
     st.info("""
-    **Core Sheets:** Raw Material Master, Stock In, Stock Out, Inventory, Supplier Master
-    **Support Sheets:** Dropdown Lists, Report Sheet, Staff Sheet, Partner Sheet
-    **Features:** Automatic reorder alerts, real-time stock tracking, consumption monitoring, expiry tracking, FIFO inventory management
+    **What you'll find here:** Real-time inventory metrics, financial overview, and quick insights to make informed decisions.
     """)
 
     # Alert Summary with optimized rendering
@@ -755,8 +832,11 @@ def show_inventory_sheet(metrics: Dict, data: Dict):
 def show_reorder_alerts(metrics: Dict):
     """Reorder Alerts - Status indicators as per user manual"""
 
-    st.markdown("## 🚨 Reorder Alerts")
-    st.markdown("### Status indicators and reorder monitoring as per Inventory Sheet")
+    # Value proposition for this page
+    st.markdown("### 🚨 **Reorder Alerts** - Items Needing Your Attention")
+    st.info("""
+    **What you'll find here:** Critical items that need immediate reordering, warning items to monitor, and suggested order quantities.
+    """)
 
     if not metrics["alert_items"]:
         st.markdown("""
@@ -847,8 +927,11 @@ def show_reorder_alerts(metrics: Dict):
 def show_raw_material_master(data: Dict, metrics: Dict):
     """Raw Material Master - Product database and specifications as per user manual"""
 
-    st.markdown("## 📦 Raw Material Master")
-    st.markdown("### Product database and specifications - Core product information that feeds the entire system")
+    # Value proposition for this page
+    st.markdown("### 📦 **Product Database** - Manage All Your Products")
+    st.info("""
+    **What you'll find here:** Complete product information, stock levels, costs, and specifications. Search, filter, and manage your entire product catalog.
+    """)
 
     # Required Information as per user manual
     st.markdown("### 📋 Required Information")
@@ -956,8 +1039,11 @@ def show_raw_material_master(data: Dict, metrics: Dict):
 def show_report_sheet(data: Dict, metrics: Dict):
     """Report Sheet - Search and analysis tools as per user manual"""
 
-    st.markdown("## 📈 Report Sheet")
-    st.markdown("### Search and analysis tools - Comprehensive product details and usage patterns")
+    # Value proposition for this page
+    st.markdown("### 📈 **Reports & Analytics** - Data-Driven Insights")
+    st.info("""
+    **What you'll find here:** Search products, analyze consumption patterns, view financial metrics, and get insights for better inventory decisions.
+    """)
 
     # Report Sheet Functions as per user manual
     st.markdown("### 🔍 Search Capability")
@@ -1186,6 +1272,7 @@ def show_report_sheet(data: Dict, metrics: Dict):
         "Stock Out": len(data.get("out_data", [])),
         "Inventory": len(data.get("inventory_data", [])),
         "Supplier Master": len(data.get("supplier_data", [])),
+        "Report": len(data.get("report_data", [])),
         "Staff Sheet": len(data.get("staff_data", [])),
         "Partner Sheet": len(data.get("partner_data", []))
     }
@@ -1200,8 +1287,11 @@ def show_report_sheet(data: Dict, metrics: Dict):
 def show_settings():
     """System settings page with configuration options"""
 
-    st.markdown("## ⚙️ System Settings")
-    st.markdown("### Dashboard configuration and preferences")
+    # Value proposition for this page
+    st.markdown("### ⚙️ **System Settings** - Configure Your Dashboard")
+    st.info("""
+    **What you'll find here:** Customize alert thresholds, set refresh intervals, and configure system preferences to match your business needs.
+    """)
 
     # Theme settings
     st.markdown("### 🎨 Theme Settings")
