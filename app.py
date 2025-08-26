@@ -515,8 +515,8 @@ def load_all_data():
         # Load all worksheets as per system structure
         try:
             ws_raw = sh.worksheet("Raw Material Master")
-            ws_in = sh.worksheet("Stock IN")
-            ws_out = sh.worksheet("Stock OUT")
+            ws_in = sh.worksheet("Stock In")
+            ws_out = sh.worksheet("Stock Out")
             ws_inventory = sh.worksheet("Inventory Sheet")
             ws_supplier = sh.worksheet("Supplier Master")
             ws_report = sh.worksheet("Report Sheet")
@@ -670,8 +670,8 @@ def show_inventory_sheet(metrics: Dict, data: Dict):
     # System Overview as per user manual
     st.markdown("### 📋 System Structure Overview")
     st.info("""
-    **Core Sheets:** Raw Material Master, Stock IN, Stock OUT, Inventory Sheet, Supplier Master  
-    **Support Sheets:** Dropdown Lists, Report Sheet, Staff Sheet, Partner Sheet  
+    **Core Sheets:** Raw Material Master, Stock In, Stock Out, Inventory Sheet, Supplier Master
+    **Support Sheets:** Dropdown Lists, Report Sheet, Staff Sheet, Partner Sheet
     **Features:** Automatic reorder alerts, real-time stock tracking, consumption monitoring, expiry tracking, FIFO inventory management
     """)
 
@@ -712,10 +712,10 @@ def show_inventory_sheet(metrics: Dict, data: Dict):
         create_metric_card("💰 Total Stock Value", f"₹{metrics['total_value']:,.0f}", "Quantity × Unit Price")
 
     with col3:
-        create_metric_card("📥 Total Stock In", f"{int(metrics['total_in']):,}", "Units received (Stock IN)")
+        create_metric_card("📥 Total Stock In", f"{int(metrics['total_in']):,}", "Units received (Stock In)")
 
     with col4:
-        create_metric_card("📤 Total Stock Out", f"{int(metrics['total_out']):,}", "Units consumed (Stock OUT)")
+        create_metric_card("📤 Total Stock Out", f"{int(metrics['total_out']):,}", "Units consumed (Stock Out)")
 
     # Financial Overview as per user manual
     st.markdown("### 💰 Financial Overview")
@@ -770,9 +770,9 @@ def show_reorder_alerts(metrics: Dict):
     # Status indicators as per user manual
     st.markdown("### 📊 Status Indicators")
     st.info("""
-    **Status Indicators:**  
-    - "Order" - Immediate reorder required  
-    - "Out of Stock" - Zero inventory  
+    **Status Indicators:**
+    - "Order" - Immediate reorder required
+    - "Out of Stock" - Zero inventory
     - Numerical value - Current stock level
     """)
 
@@ -853,8 +853,8 @@ def show_raw_material_master(data: Dict, metrics: Dict):
     # Required Information as per user manual
     st.markdown("### 📋 Required Information")
     st.info("""
-    **Required Fields:** RM ID, Product Name, Unit, Avg. Cost per Unit, Cost per Unit, Reorder Level  
-    **Best Practice:** Use consistent naming conventions for RM IDs - typically first 4 letters of product + sequential number  
+    **Required Fields:** RM ID, Product Name, Unit, Avg. Cost per Unit, Cost per Unit, Reorder Level
+    **Best Practice:** Use consistent naming conventions for RM IDs - typically first 4 letters of product + sequential number
     **Example:** WHEA01 for Wheat, PANE04 for Paneer
     """)
 
@@ -962,30 +962,30 @@ def show_report_sheet(data: Dict, metrics: Dict):
     # Report Sheet Functions as per user manual
     st.markdown("### 🔍 Search Capability")
     st.info("""
-    **Search Functions:**  
-    - Type any product name in the search field  
-    - View comprehensive details instantly  
-    - Access usage history and patterns  
+    **Search Functions:**
+    - Type any product name in the search field
+    - View comprehensive details instantly
+    - Access usage history and patterns
     - Review reorder recommendations
     """)
 
     # Search functionality
     search_product = st.text_input("🔍 Search Products", placeholder="Enter product name or RM ID...")
-    
+
     if search_product:
         st.markdown("### 📋 Search Results")
         # Filter products based on search
         cleaned_data = clean_and_validate_data(data)
         search_results = []
-        
+
         for record in cleaned_data["raw_data"]:
             product_name = record.get("Product Name", "").lower()
             rm_id = record.get("RM ID", "").lower()
             search_term = search_product.lower()
-            
+
             if search_term in product_name or search_term in rm_id:
                 search_results.append(record)
-        
+
         if search_results:
             st.success(f"Found {len(search_results)} matching products")
             for result in search_results:
@@ -1124,54 +1124,54 @@ def show_report_sheet(data: Dict, metrics: Dict):
     # System Data Quality
     st.markdown("### 🔍 Data Quality Report")
 
-    # Calculate data quality metrics
+        # Calculate data quality metrics
     total_raw_records = len(data.get("raw_data", []))
     total_in_records = len(data.get("in_data", []))
     total_out_records = len(data.get("out_data", []))
-
+    
     cleaned_raw_records = len(cleaned_data["raw_data"])
     cleaned_in_records = len(cleaned_data["in_data"])
     cleaned_out_records = len(cleaned_data["out_data"])
-
+    
     col1, col2, col3 = st.columns(3)
-
+    
     with col1:
         raw_quality = (cleaned_raw_records / max(total_raw_records, 1)) * 100
         st.metric("Raw Material Quality", f"{raw_quality:.1f}%")
         st.caption(f"{cleaned_raw_records}/{total_raw_records} valid records")
-
+    
     with col2:
         in_quality = (cleaned_in_records / max(total_in_records, 1)) * 100
-        st.metric("Stock IN Quality", f"{in_quality:.1f}%")
+        st.metric("Stock In Quality", f"{in_quality:.1f}%")
         st.caption(f"{cleaned_in_records}/{total_in_records} valid records")
-
+    
     with col3:
         out_quality = (cleaned_out_records / max(total_out_records, 1)) * 100
-        st.metric("Stock OUT Quality", f"{out_quality:.1f}%")
+        st.metric("Stock Out Quality", f"{out_quality:.1f}%")
         st.caption(f"{cleaned_out_records}/{total_out_records} valid records")
 
     # Consumption Tracking as per user manual
     st.markdown("### 📊 Consumption Tracking")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.markdown("#### 👥 Staff Sheet Analysis")
         st.info("""
-        - Individual product consumption by staff  
-        - Period-based usage reports  
-        - Cost allocation for staff usage  
+        - Individual product consumption by staff
+        - Period-based usage reports
+        - Cost allocation for staff usage
         - Trend identification
         """)
         staff_records = len(data.get("staff_data", []))
         st.metric("Staff Records", staff_records)
-    
+
     with col2:
         st.markdown("#### 🤝 Partner Sheet Monitoring")
         st.info("""
-        - Partner-specific consumption data  
-        - Comparative usage analysis  
-        - Billing support information  
+        - Partner-specific consumption data
+        - Comparative usage analysis
+        - Billing support information
         - Individual cost breakdowns
         """)
         partner_records = len(data.get("partner_data", []))
@@ -1182,8 +1182,8 @@ def show_report_sheet(data: Dict, metrics: Dict):
 
     sheet_stats = {
         "Raw Material Master": len(data.get("raw_data", [])),
-        "Stock IN": len(data.get("in_data", [])),
-        "Stock OUT": len(data.get("out_data", [])),
+        "Stock In": len(data.get("in_data", [])),
+        "Stock Out": len(data.get("out_data", [])),
         "Inventory Sheet": len(data.get("inventory_data", [])),
         "Supplier Master": len(data.get("supplier_data", [])),
         "Staff Sheet": len(data.get("staff_data", [])),
