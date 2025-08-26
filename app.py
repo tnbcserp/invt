@@ -11,7 +11,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # ============== Page Configuration ==============
 st.set_page_config(
-    page_title="Inventory Management System",
+    page_title="📦 Inventory Management System - Google Sheets-Based Stock Control",
     page_icon="📦",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -274,19 +274,19 @@ def get_product_status(current_stock: float, reorder_level: float, reorder_requi
 def clean_and_validate_data(data: Dict) -> Dict:
     """Strict data cleaning and validation process"""
     cleaned_data = {}
-    
+
     # Clean Raw Material Master data
     cleaned_raw_data = []
     for record in data.get("raw_data", []):
         # Validate required fields
         if not record.get("RM ID") or not record.get("Product Name"):
             continue
-            
+
         # Clean and validate numeric fields
         current_stock = num_or_zero(record.get("Current Stock", 0))
         unit_cost = money_to_float(record.get("Cost per Unit", record.get("Avg. Cost per Unit", 0)))
         reorder_level = money_to_float(record.get("Reorder Level", 0))
-        
+
         # Validate data integrity
         if current_stock < 0:
             current_stock = 0
@@ -294,7 +294,7 @@ def clean_and_validate_data(data: Dict) -> Dict:
             unit_cost = 0
         if reorder_level < 0:
             reorder_level = 0
-            
+
         cleaned_record = {
             "RM ID": str(record.get("RM ID", "")).strip(),
             "Product Name": str(record.get("Product Name", "")).strip(),
@@ -306,19 +306,19 @@ def clean_and_validate_data(data: Dict) -> Dict:
             "Re-Order Required": str(record.get("Re-Order Required", "")).strip().upper()
         }
         cleaned_raw_data.append(cleaned_record)
-    
+
     # Clean Stock IN data
     cleaned_in_data = []
     for record in data.get("in_data", []):
         if not record.get("Product Name") or not record.get("Quantity In"):
             continue
-            
+
         quantity_in = num_or_zero(record.get("Quantity In", 0))
         cost_per_unit = money_to_float(record.get("Cost Per Unit", 0))
-        
+
         if quantity_in <= 0 or cost_per_unit <= 0:
             continue
-            
+
         cleaned_record = {
             "Date": record.get("Date", ""),
             "Product Name": str(record.get("Product Name", "")).strip(),
@@ -329,18 +329,18 @@ def clean_and_validate_data(data: Dict) -> Dict:
             "Product ID": str(record.get("Product ID", "")).strip()
         }
         cleaned_in_data.append(cleaned_record)
-    
+
     # Clean Stock OUT data
     cleaned_out_data = []
     for record in data.get("out_data", []):
         if not record.get("Product Name") or not record.get("Quantity Out"):
             continue
-            
+
         quantity_out = num_or_zero(record.get("Quantity Out", 0))
-        
+
         if quantity_out <= 0:
             continue
-            
+
         cleaned_record = {
             "Date": record.get("Date", ""),
             "Product Name": str(record.get("Product Name", "")).strip(),
@@ -350,7 +350,7 @@ def clean_and_validate_data(data: Dict) -> Dict:
             "Remarks": str(record.get("Remarks", "")).strip()
         }
         cleaned_out_data.append(cleaned_record)
-    
+
     cleaned_data = {
         "raw_data": cleaned_raw_data,
         "in_data": cleaned_in_data,
@@ -360,7 +360,7 @@ def clean_and_validate_data(data: Dict) -> Dict:
         "staff_data": data.get("staff_data", []),
         "partner_data": data.get("partner_data", [])
     }
-    
+
     return cleaned_data
 
 @st.cache_data
@@ -368,7 +368,7 @@ def calculate_inventory_metrics(data: Dict) -> Dict:
     """Calculate comprehensive inventory metrics with proper formulas"""
     # First clean the data
     cleaned_data = clean_and_validate_data(data)
-    
+
     metrics = {
         "total_products": len(cleaned_data["raw_data"]),
         "total_value": 0.0,
@@ -389,14 +389,14 @@ def calculate_inventory_metrics(data: Dict) -> Dict:
     # Calculate Stock IN/OUT totals with proper validation
     for record in cleaned_data["in_data"]:
         metrics["total_in"] += num_or_zero(record.get("Quantity In", 0))
-    
+
     for record in cleaned_data["out_data"]:
         metrics["total_out"] += num_or_zero(record.get("Quantity Out", 0))
 
     # Process all records with proper calculations
     total_cost = 0.0
     total_units = 0.0
-    
+
     for record in cleaned_data["raw_data"]:
         current_stock = num_or_zero(record.get("Current Stock", 0))
         unit_cost = money_to_float(record.get("Cost per Unit", 0))
@@ -408,7 +408,7 @@ def calculate_inventory_metrics(data: Dict) -> Dict:
         # Calculate inventory value (Current Stock × Cost per Unit)
         item_value = current_stock * unit_cost
         metrics["total_value"] += item_value
-        
+
         # Calculate total cost for average
         total_cost += unit_cost
         total_units += 1
@@ -422,7 +422,7 @@ def calculate_inventory_metrics(data: Dict) -> Dict:
 
         # Calculate reorder value (Reorder Level × Cost per Unit)
         reorder_value = reorder_level * unit_cost
-        
+
         if status == "critical":
             if current_stock == 0:
                 metrics["out_of_stock_items"] += 1
@@ -462,7 +462,7 @@ def calculate_inventory_metrics(data: Dict) -> Dict:
     # Calculate average cost per unit
     if total_units > 0:
         metrics["avg_cost_per_unit"] = total_cost / total_units
-    
+
     # Calculate stock turnover rate (Stock Out / Average Stock)
     avg_stock = metrics["total_value"] / max(metrics["total_products"], 1)
     if avg_stock > 0:
@@ -527,37 +527,37 @@ def load_all_data():
 
         # Get all records from available sheets
         data = {}
-        
+
         try:
             data["raw_data"] = ws_raw.get_all_records()
         except:
             data["raw_data"] = []
-            
+
         try:
             data["in_data"] = ws_in.get_all_records()
         except:
             data["in_data"] = []
-            
+
         try:
             data["out_data"] = ws_out.get_all_records()
         except:
             data["out_data"] = []
-            
+
         try:
             data["inventory_data"] = ws_inventory.get_all_records()
         except:
             data["inventory_data"] = []
-            
+
         try:
             data["supplier_data"] = ws_supplier.get_all_records()
         except:
             data["supplier_data"] = []
-            
+
         try:
             data["staff_data"] = ws_staff.get_all_records()
         except:
             data["staff_data"] = []
-            
+
         try:
             data["partner_data"] = ws_partner.get_all_records()
         except:
@@ -612,10 +612,10 @@ def main():
             help="Choose your preferred theme"
         )
 
-        # Navigation based on system structure
+        # Navigation based on system structure from user manual
         page = st.selectbox(
             "Choose a page:",
-            ["📊 Dashboard", "🚨 Reorder Alerts", "📦 Product Database", "📈 Reports & Analytics", "⚙️ System Settings"],
+            ["📊 Inventory Sheet", "🚨 Reorder Alerts", "📦 Raw Material Master", "📈 Report Sheet", "⚙️ System Settings"],
             key="page_selector"
         )
 
@@ -644,35 +644,35 @@ def main():
         # Calculate inventory metrics
         metrics = calculate_inventory_metrics(data)
 
-    # Main content based on selected page
-    if page == "📊 Dashboard":
-        show_dashboard(metrics, data)
+    # Main content based on selected page (matching user manual structure)
+    if page == "📊 Inventory Sheet":
+        show_inventory_sheet(metrics, data)
     elif page == "🚨 Reorder Alerts":
-        show_alerts(metrics)
-    elif page == "📦 Product Database":
-        show_products(data, metrics)
-    elif page == "📈 Reports & Analytics":
-        show_analytics(data, metrics)
+        show_reorder_alerts(metrics)
+    elif page == "📦 Raw Material Master":
+        show_raw_material_master(data, metrics)
+    elif page == "📈 Report Sheet":
+        show_report_sheet(data, metrics)
     elif page == "⚙️ System Settings":
         show_settings()
 
-def show_dashboard(metrics: Dict, data: Dict):
-    """Main dashboard aligned with inventory system structure"""
+def show_inventory_sheet(metrics: Dict, data: Dict):
+    """Inventory Sheet - Main command center as per user manual"""
 
     # Header
     st.markdown("""
     <div class="main-header">
         <h1>📦 Inventory Management System</h1>
-        <p>Google Sheets-Based Stock Control Solution - Real-time dashboard for efficient inventory management</p>
+        <p>Google Sheets-Based Stock Control Solution - Real-time inventory status and overview</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # System Overview
-    st.markdown("### 📋 System Overview")
+    # System Overview as per user manual
+    st.markdown("### 📋 System Structure Overview")
     st.info("""
     **Core Sheets:** Raw Material Master, Stock IN, Stock OUT, Inventory Sheet, Supplier Master  
-    **Support Sheets:** Report Sheet, Staff Sheet, Partner Sheet  
-    **Features:** Automatic reorder alerts, real-time stock tracking, consumption monitoring, expiry tracking
+    **Support Sheets:** Dropdown Lists, Report Sheet, Staff Sheet, Partner Sheet  
+    **Features:** Automatic reorder alerts, real-time stock tracking, consumption monitoring, expiry tracking, FIFO inventory management
     """)
 
     # Alert Summary with optimized rendering
@@ -700,8 +700,8 @@ def show_dashboard(metrics: Dict, data: Dict):
 
     st.markdown("---")
 
-    # KPI Cards with optimized rendering
-    st.markdown("### 📈 Key Performance Indicators")
+    # Inventory Sheet Key Metrics as per user manual
+    st.markdown("### 📊 Inventory Sheet - Key Metrics")
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -709,54 +709,54 @@ def show_dashboard(metrics: Dict, data: Dict):
         create_metric_card("📦 Total Products", f"{metrics['total_products']:,}", "Items in Raw Material Master")
 
     with col2:
-        create_metric_card("💰 Inventory Value", f"₹{metrics['total_value']:,.0f}", "Current Stock × Unit Cost")
+        create_metric_card("💰 Total Stock Value", f"₹{metrics['total_value']:,.0f}", "Quantity × Unit Price")
 
     with col3:
-        create_metric_card("📥 Stock In", f"{int(metrics['total_in']):,}", "Units received (Stock IN)")
+        create_metric_card("📥 Total Stock In", f"{int(metrics['total_in']):,}", "Units received (Stock IN)")
 
     with col4:
-        create_metric_card("📤 Stock Out", f"{int(metrics['total_out']):,}", "Units consumed (Stock OUT)")
+        create_metric_card("📤 Total Stock Out", f"{int(metrics['total_out']):,}", "Units consumed (Stock OUT)")
 
-    # Additional Financial Metrics
+    # Financial Overview as per user manual
     st.markdown("### 💰 Financial Overview")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        create_metric_card("📊 Avg Cost/Unit", f"₹{metrics['avg_cost_per_unit']:,.2f}", "Weighted average cost")
-    
-    with col2:
-        create_metric_card("🔄 Stock Turnover", f"{metrics['stock_turnover_rate']:.2f}", "Stock Out / Avg Stock")
-    
-    with col3:
-        create_metric_card("🚨 Reorder Value", f"₹{metrics['total_reorder_value']:,.0f}", "Total reorder cost")
 
-    # Quick Actions
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        create_metric_card("📊 Avg Cost per Unit", f"₹{metrics['avg_cost_per_unit']:,.2f}", "Historical average price")
+
+    with col2:
+        create_metric_card("🔄 Stock Turnover Rate", f"{metrics['stock_turnover_rate']:.2f}", "Stock Out / Average Stock")
+
+    with col3:
+        create_metric_card("🚨 Est Reorder Value", f"₹{metrics['total_reorder_value']:,.0f}", "Projected restocking cost")
+
+    # Quick Actions as per user manual
     st.markdown("---")
     st.markdown("### ⚡ Quick Actions")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("🚨 View Reorder Alerts", use_container_width=True):
+        if st.button("🚨 Check Reorder Alerts", use_container_width=True):
             st.session_state.current_page = "🚨 Reorder Alerts"
             st.rerun()
 
     with col2:
-        if st.button("📦 Product Database", use_container_width=True):
-            st.session_state.current_page = "📦 Product Database"
+        if st.button("📦 Raw Material Master", use_container_width=True):
+            st.session_state.current_page = "📦 Raw Material Master"
             st.rerun()
 
     with col3:
-        if st.button("📈 Reports & Analytics", use_container_width=True):
-            st.session_state.current_page = "📈 Reports & Analytics"
+        if st.button("📈 Report Sheet", use_container_width=True):
+            st.session_state.current_page = "📈 Report Sheet"
             st.rerun()
 
-def show_alerts(metrics: Dict):
-    """Reorder alerts page aligned with system terminology"""
+def show_reorder_alerts(metrics: Dict):
+    """Reorder Alerts - Status indicators as per user manual"""
 
     st.markdown("## 🚨 Reorder Alerts")
-    st.markdown("### Real-time reorder monitoring for inventory management")
+    st.markdown("### Status indicators and reorder monitoring as per Inventory Sheet")
 
     if not metrics["alert_items"]:
         st.markdown("""
@@ -767,16 +767,25 @@ def show_alerts(metrics: Dict):
         """, unsafe_allow_html=True)
         return
 
+    # Status indicators as per user manual
+    st.markdown("### 📊 Status Indicators")
+    st.info("""
+    **Status Indicators:**  
+    - "Order" - Immediate reorder required  
+    - "Out of Stock" - Zero inventory  
+    - Numerical value - Current stock level
+    """)
+
     # Sort alerts by priority for better performance
     critical_alerts = [item for item in metrics["alert_items"] if item["status"] == "critical"]
     warning_alerts = [item for item in metrics["alert_items"] if item["status"] == "warning"]
 
-    # Critical Alerts
+    # Critical Alerts as per user manual
     if critical_alerts:
         st.markdown("### 🔴 Critical Alerts (Immediate Action Required)")
 
         for alert in critical_alerts:
-            col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
+            col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1, 1, 1])
 
             with col1:
                 st.markdown(f"""
@@ -794,17 +803,21 @@ def show_alerts(metrics: Dict):
                 st.metric("Reorder Level", f"{alert['reorder_level']:.0f}")
 
             with col4:
-                st.metric("Unit Cost", f"₹{alert['unit_cost']:,.2f}")
+                st.metric("Stock Value", f"₹{alert['stock_value']:,.0f}")
 
             with col5:
-                st.metric("Est. Reorder Value", f"₹{alert['est_reorder_value']:,.0f}")
+                st.metric("Est Reorder Value", f"₹{alert['est_reorder_value']:,.0f}")
 
-    # Warning Alerts
+            with col6:
+                suggested_qty = alert['reorder_level'] - alert['current_stock']
+                st.metric("Reorder Qty", f"{suggested_qty:.0f}")
+
+    # Warning Alerts as per user manual
     if warning_alerts:
         st.markdown("### 🟡 Warning Alerts (Monitor Closely)")
 
         for alert in warning_alerts:
-            col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
+            col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1, 1, 1])
 
             with col1:
                 st.markdown(f"""
@@ -822,16 +835,28 @@ def show_alerts(metrics: Dict):
                 st.metric("Reorder Level", f"{alert['reorder_level']:.0f}")
 
             with col4:
-                st.metric("Unit Cost", f"₹{alert['unit_cost']:,.2f}")
+                st.metric("Stock Value", f"₹{alert['stock_value']:,.0f}")
 
             with col5:
-                st.metric("Est. Reorder Value", f"₹{alert['est_reorder_value']:,.0f}")
+                st.metric("Est Reorder Value", f"₹{alert['est_reorder_value']:,.0f}")
 
-def show_products(data: Dict, metrics: Dict):
-    """Product database page aligned with Raw Material Master structure"""
+            with col6:
+                suggested_qty = alert['reorder_level'] - alert['current_stock']
+                st.metric("Reorder Qty", f"{suggested_qty:.0f}")
 
-    st.markdown("## 📦 Product Database")
-    st.markdown("### Raw Material Master - Complete product overview with status tracking")
+def show_raw_material_master(data: Dict, metrics: Dict):
+    """Raw Material Master - Product database and specifications as per user manual"""
+
+    st.markdown("## 📦 Raw Material Master")
+    st.markdown("### Product database and specifications - Core product information that feeds the entire system")
+
+    # Required Information as per user manual
+    st.markdown("### 📋 Required Information")
+    st.info("""
+    **Required Fields:** RM ID, Product Name, Unit, Avg. Cost per Unit, Cost per Unit, Reorder Level  
+    **Best Practice:** Use consistent naming conventions for RM IDs - typically first 4 letters of product + sequential number  
+    **Example:** WHEA01 for Wheat, PANE04 for Paneer
+    """)
 
     # Filters
     col1, col2, col3 = st.columns(3)
@@ -843,7 +868,7 @@ def show_products(data: Dict, metrics: Dict):
         )
 
     with col2:
-        search_term = st.text_input("Search Products (RM ID or Name)", "")
+        search_term = st.text_input("Search Products (RM ID or Product Name)", "")
 
     with col3:
         sort_by = st.selectbox(
@@ -897,9 +922,9 @@ def show_products(data: Dict, metrics: Dict):
     else:  # Name
         filtered_products.sort(key=lambda x: x["name"])
 
-    # Display products with optimized rendering
+    # Display products with columns as per user manual
     for product in filtered_products:
-        col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1, 1, 1])
+        col1, col2, col3, col4, col5, col6, col7 = st.columns([3, 1, 1, 1, 1, 1, 1])
 
         with col1:
             st.markdown(f"""
@@ -911,29 +936,66 @@ def show_products(data: Dict, metrics: Dict):
             """, unsafe_allow_html=True)
 
         with col2:
-            st.metric("Stock", f"{product['current_stock']:.0f}")
+            st.metric("Current Stock", f"{product['current_stock']:.0f}")
 
         with col3:
             st.metric("Reorder Level", f"{product['reorder_level']:.0f}")
 
         with col4:
-            st.metric("Unit Cost", f"₹{product['unit_cost']:,.2f}")
+            st.metric("Avg Cost/Unit", f"₹{product['unit_cost']:,.2f}")
 
         with col5:
-            st.metric("Total Value", f"₹{product['total_value']:,.0f}")
+            st.metric("Cost/Unit", f"₹{product['unit_cost']:,.2f}")
 
         with col6:
+            st.metric("Stock Value", f"₹{product['total_value']:,.0f}")
+
+        with col7:
             st.metric("Status", product['status_text'].split()[0])
 
-def show_analytics(data: Dict, metrics: Dict):
-    """Reports and analytics page with correct formulas and calculations"""
+def show_report_sheet(data: Dict, metrics: Dict):
+    """Report Sheet - Search and analysis tools as per user manual"""
 
-    st.markdown("## 📈 Reports & Analytics")
-    st.markdown("### Data-driven insights for inventory management")
+    st.markdown("## 📈 Report Sheet")
+    st.markdown("### Search and analysis tools - Comprehensive product details and usage patterns")
+
+    # Report Sheet Functions as per user manual
+    st.markdown("### 🔍 Search Capability")
+    st.info("""
+    **Search Functions:**  
+    - Type any product name in the search field  
+    - View comprehensive details instantly  
+    - Access usage history and patterns  
+    - Review reorder recommendations
+    """)
+
+    # Search functionality
+    search_product = st.text_input("🔍 Search Products", placeholder="Enter product name or RM ID...")
+    
+    if search_product:
+        st.markdown("### 📋 Search Results")
+        # Filter products based on search
+        cleaned_data = clean_and_validate_data(data)
+        search_results = []
+        
+        for record in cleaned_data["raw_data"]:
+            product_name = record.get("Product Name", "").lower()
+            rm_id = record.get("RM ID", "").lower()
+            search_term = search_product.lower()
+            
+            if search_term in product_name or search_term in rm_id:
+                search_results.append(record)
+        
+        if search_results:
+            st.success(f"Found {len(search_results)} matching products")
+            for result in search_results:
+                st.write(f"**{result['Product Name']}** ({result['RM ID']}) - Stock: {result['Current Stock']}")
+        else:
+            st.warning("No products found matching your search")
 
     # Key Performance Indicators
     st.markdown("### 📊 Key Performance Indicators")
-    
+
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -954,38 +1016,38 @@ def show_analytics(data: Dict, metrics: Dict):
 
     # Financial Analytics
     st.markdown("### 💰 Financial Analytics")
-    
+
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         st.metric("Total Inventory Value", f"₹{metrics['total_value']:,.0f}")
         st.caption("Current Stock × Unit Cost")
-    
+
     with col2:
         st.metric("Average Cost per Unit", f"₹{metrics['avg_cost_per_unit']:,.2f}")
         st.caption("Weighted average cost")
-    
+
     with col3:
         st.metric("Total Reorder Value", f"₹{metrics['total_reorder_value']:,.0f}")
         st.caption("Reorder Level × Unit Cost")
-    
+
     with col4:
         st.metric("Stock Turnover Rate", f"{metrics['stock_turnover_rate']:.2f}")
         st.caption("Stock Out / Average Stock")
 
     # Stock Movement Analysis
     st.markdown("### 📦 Stock Movement Analysis")
-    
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.metric("Total Stock In", f"{metrics['total_in']:,.0f}")
         st.caption("Units received")
-    
+
     with col2:
         st.metric("Total Stock Out", f"{metrics['total_out']:,.0f}")
         st.caption("Units consumed")
-    
+
     with col3:
         net_movement = metrics['total_in'] - metrics['total_out']
         st.metric("Net Movement", f"{net_movement:,.0f}")
@@ -993,10 +1055,10 @@ def show_analytics(data: Dict, metrics: Dict):
 
     # Value Distribution Analysis
     st.markdown("### 📊 Value Distribution Analysis")
-    
+
     # Use cleaned data for accurate calculations
     cleaned_data = clean_and_validate_data(data)
-    
+
     high_value_items = []
     medium_value_items = []
     low_value_items = []
@@ -1035,23 +1097,23 @@ def show_analytics(data: Dict, metrics: Dict):
 
     # Alert Analysis
     st.markdown("### 🚨 Alert Analysis")
-    
+
     if metrics["alert_items"]:
         critical_alerts = [item for item in metrics["alert_items"] if item["status"] == "critical"]
         warning_alerts = [item for item in metrics["alert_items"] if item["status"] == "warning"]
-        
+
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
             critical_value = sum(item.get("stock_value", 0) for item in critical_alerts)
             st.metric("Critical Alerts Value", f"₹{critical_value:,.0f}")
             st.caption(f"{len(critical_alerts)} items")
-        
+
         with col2:
             warning_value = sum(item.get("stock_value", 0) for item in warning_alerts)
             st.metric("Warning Alerts Value", f"₹{warning_value:,.0f}")
             st.caption(f"{len(warning_alerts)} items")
-        
+
         with col3:
             total_alert_value = critical_value + warning_value
             st.metric("Total Alert Value", f"₹{total_alert_value:,.0f}")
@@ -1061,36 +1123,63 @@ def show_analytics(data: Dict, metrics: Dict):
 
     # System Data Quality
     st.markdown("### 🔍 Data Quality Report")
-    
+
     # Calculate data quality metrics
     total_raw_records = len(data.get("raw_data", []))
     total_in_records = len(data.get("in_data", []))
     total_out_records = len(data.get("out_data", []))
-    
+
     cleaned_raw_records = len(cleaned_data["raw_data"])
     cleaned_in_records = len(cleaned_data["in_data"])
     cleaned_out_records = len(cleaned_data["out_data"])
-    
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         raw_quality = (cleaned_raw_records / max(total_raw_records, 1)) * 100
         st.metric("Raw Material Quality", f"{raw_quality:.1f}%")
         st.caption(f"{cleaned_raw_records}/{total_raw_records} valid records")
-    
+
     with col2:
         in_quality = (cleaned_in_records / max(total_in_records, 1)) * 100
         st.metric("Stock IN Quality", f"{in_quality:.1f}%")
         st.caption(f"{cleaned_in_records}/{total_in_records} valid records")
-    
+
     with col3:
         out_quality = (cleaned_out_records / max(total_out_records, 1)) * 100
         st.metric("Stock OUT Quality", f"{out_quality:.1f}%")
         st.caption(f"{cleaned_out_records}/{total_out_records} valid records")
 
+    # Consumption Tracking as per user manual
+    st.markdown("### 📊 Consumption Tracking")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("#### 👥 Staff Sheet Analysis")
+        st.info("""
+        - Individual product consumption by staff  
+        - Period-based usage reports  
+        - Cost allocation for staff usage  
+        - Trend identification
+        """)
+        staff_records = len(data.get("staff_data", []))
+        st.metric("Staff Records", staff_records)
+    
+    with col2:
+        st.markdown("#### 🤝 Partner Sheet Monitoring")
+        st.info("""
+        - Partner-specific consumption data  
+        - Comparative usage analysis  
+        - Billing support information  
+        - Individual cost breakdowns
+        """)
+        partner_records = len(data.get("partner_data", []))
+        st.metric("Partner Records", partner_records)
+
     # System sheets overview
     st.markdown("### 📋 System Sheets Overview")
-    
+
     sheet_stats = {
         "Raw Material Master": len(data.get("raw_data", [])),
         "Stock IN": len(data.get("in_data", [])),
@@ -1100,7 +1189,7 @@ def show_analytics(data: Dict, metrics: Dict):
         "Staff Sheet": len(data.get("staff_data", [])),
         "Partner Sheet": len(data.get("partner_data", []))
     }
-    
+
     for sheet_name, record_count in sheet_stats.items():
         col1, col2 = st.columns([2, 1])
         with col1:
@@ -1158,7 +1247,7 @@ def show_settings():
     # System information
     st.markdown("### 📋 System Information")
     st.info("""
-    **Inventory Management System**  
+    **Inventory Management System**
     - Google Sheets-based solution
     - Real-time stock tracking
     - Automatic reorder alerts
