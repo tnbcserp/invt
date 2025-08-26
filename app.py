@@ -39,7 +39,18 @@ def to_date(x):
 
 @st.cache_resource(show_spinner=False)
 def get_gspread_client():
-    creds_json = st.secrets["GOOGLE_CREDENTIALS_JSON"]
+    # Try to get credentials from environment variable first (for Render)
+    import os
+    creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+
+    # If not in environment, try secrets (for local development)
+    if not creds_json:
+        try:
+            creds_json = st.secrets["GOOGLE_CREDENTIALS_JSON"]
+        except:
+            st.error("No Google credentials found. Please set GOOGLE_CREDENTIALS_JSON environment variable.")
+            return None
+
     creds_dict = json.loads(creds_json)
     scope = [
         "https://spreadsheets.google.com/feeds",
@@ -53,6 +64,10 @@ def get_gspread_client():
 @st.cache_data(ttl=300, show_spinner=False)
 def load_all_data():
     gc = get_gspread_client()
+
+    if gc is None:
+        st.error("Failed to initialize Google Sheets client. Please check your credentials.")
+        return None
 
     # Embedded sheet ID
     SHEET_ID = "1G_q_d4Kg35PWBWb49f5FWmoYAnA4k0TYAg4QzIM4N24"
@@ -75,21 +90,21 @@ def load_all_data():
     # Calculate totals
     total_in = sum(num_or_zero(record.get("Quantity", record.get("Quantity In", 0))) for record in in_data)
     total_out = sum(num_or_zero(record.get("Quantity Out", 0)) for record in out_data)
-    
+
     # Calculate inventory value
     total_value = 0
     alert_count = 0
-    
+
     for record in raw_data:
         current_stock = num_or_zero(record.get("Current Stock", 0))
         unit_cost = money_to_float(record.get("Cost per Unit", record.get("Avg. Cost per Unit", 0)))
         reorder_level = money_to_float(record.get("Reorder Level", 0))
-        
+
         # Calculate inventory value
         total_value += current_stock * unit_cost
-        
+
         # Check for alerts
-        if (current_stock <= reorder_level or 
+        if (current_stock <= reorder_level or
             str(record.get("Re-Order Required", "")).strip().upper() == "YES" or
             current_stock == 0):
             alert_count += 1
@@ -112,7 +127,11 @@ st.set_page_config(page_title="Inventory Dashboard", page_icon="📦", layout="w
 # Load data
 try:
     data = load_all_data()
-    
+
+    if data is None:
+        st.error("Unable to load data. Please check your Google Sheets connection and credentials.")
+        st.stop()
+
     # Header
     col_logo, col_title, col_alerts, col_refresh = st.columns([0.5, 4, 1.5, 1])
     with col_logo:
@@ -132,7 +151,7 @@ try:
                 for record in data["raw_data"]:
                     current_stock = num_or_zero(record.get("Current Stock", 0))
                     reorder_level = money_to_float(record.get("Reorder Level", 0))
-                    if (current_stock <= reorder_level or 
+                    if (current_stock <= reorder_level or
                         str(record.get("Re-Order Required", "")).strip().upper() == "YES" or
                         current_stock == 0):
                         alert_items.append({
@@ -141,7 +160,7 @@ try:
                             "Reorder Level": reorder_level,
                             "Status": "Out of Stock" if current_stock == 0 else "Below Reorder Level"
                         })
-                
+
                 for item in alert_items:
                     st.write(f"• **{item['Product']}**: {item['Current Stock']} units ({item['Status']})")
 
@@ -168,7 +187,7 @@ try:
 
     with tab1:
         st.markdown("### Current Inventory Status")
-        
+
         # Simple table display
         if data["raw_data"]:
             # Create simple table data
@@ -177,7 +196,7 @@ try:
                 current_stock = num_or_zero(record.get("Current Stock", 0))
                 reorder_level = money_to_float(record.get("Reorder Level", 0))
                 unit_cost = money_to_float(record.get("Cost per Unit", record.get("Avg. Cost per Unit", 0)))
-                
+
                 status = "🟢 OK"
                 if current_stock == 0:
                     status = "🔴 Out of Stock"
@@ -185,7 +204,7 @@ try:
                     status = "🟡 Below Reorder Level"
                 elif str(record.get("Re-Order Required", "")).strip().upper() == "YES":
                     status = "🟠 Manual Reorder"
-                
+
                 table_data.append({
                     "Product": record.get("Product Name", record.get("RM ID", "Unknown")),
                     "Current Stock": current_stock,
@@ -193,7 +212,7 @@ try:
                     "Unit Cost": f"₹{unit_cost:,.2f}",
                     "Status": status
                 })
-            
+
             # Display as simple table
             for item in table_data:
                 col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
@@ -208,7 +227,7 @@ try:
 
     with tab2:
         st.markdown("### Raw Data")
-        
+
         # Show raw data in expandable sections
         with st.expander("Raw Material Master Data", expanded=False):
             if data["raw_data"]:
@@ -216,14 +235,14 @@ try:
                     st.json(record)
             else:
                 st.info("No raw material data available.")
-        
+
         with st.expander("Stock In Data", expanded=False):
             if data["in_data"]:
                 for record in data["in_data"]:
                     st.json(record)
             else:
                 st.info("No stock in data available.")
-        
+
         with st.expander("Stock Out Data", expanded=False):
             if data["out_data"]:
                 for record in data["out_data"]:
@@ -238,3 +257,20 @@ try:
 except Exception as e:
     st.error(f"Error loading data: {str(e)}")
     st.info("Please check your Google Sheets connection and credentials.")
+
+    # Helpful setup instructions
+    st.markdown("### 🔧 Setup Instructions:")
+    st.markdown("""
+    1. **For Render Deployment:**
+       - Go to your Render service settings
+       - Add environment variable: `GOOGLE_CREDENTIALS_JSON`
+       - Paste your Google service account JSON credentials
+
+    2. **For Local Development:**
+       - Create `.streamlit/secrets.toml` file
+       - Add: `GOOGLE_CREDENTIALS_JSON = '{"your": "credentials"}'`
+
+    3. **Google Sheets Setup:**
+       - Share your Google Sheet with the service account email
+       - Ensure the sheet has tabs: 'Raw Material Master', 'Stock In', 'Stock Out'
+    """)
