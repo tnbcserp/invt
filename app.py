@@ -11,8 +11,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # ============== Page Configuration ==============
 st.set_page_config(
-    page_title="📦 Inventory Management System - Google Sheets-Based Stock Control",
-    page_icon="📦",
+    page_title="🏪 Restaurant Inventory Manager - Smart Stock Control",
+    page_icon="🏪",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -68,6 +68,142 @@ def apply_custom_css():
     .stApp {{
         background-color: {colors['background']} !important;
         color: {colors['text']} !important;
+    }}
+    
+    /* Global Navigation Styles */
+    .global-nav {{
+        background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
+        padding: 0;
+        margin: -1rem -1rem 1rem -1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }}
+    
+    .nav-container {{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }}
+    
+    .nav-brand h2 {{
+        color: white;
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }}
+    
+    .nav-links {{
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }}
+    
+    .nav-link {{
+        color: white;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }}
+    
+    .nav-link:hover {{
+        background: rgba(255,255,255,0.2);
+        color: white;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }}
+    
+    .nav-link.active {{
+        background: rgba(255,255,255,0.3);
+        color: white;
+        font-weight: 600;
+    }}
+    
+    /* Responsive Navigation */
+    @media (max-width: 768px) {{
+        .nav-container {{
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }}
+        
+        .nav-links {{
+            flex-wrap: wrap;
+            justify-content: center;
+        }}
+        
+        .nav-link {{
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+        }}
+    }}
+    
+    /* Floating Action Button */
+    .fab {{
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 1000;
+        text-decoration: none;
+    }}
+    
+    .fab:hover {{
+        transform: scale(1.1);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.4);
+        color: white;
+        text-decoration: none;
+    }}
+    
+    /* Quick Navigation Menu */
+    .quick-nav {{
+        position: fixed;
+        bottom: 5rem;
+        right: 2rem;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        padding: 1rem;
+        display: none;
+        z-index: 999;
+    }}
+    
+    .quick-nav.show {{
+        display: block;
+    }}
+    
+    .quick-nav-item {{
+        display: block;
+        padding: 0.5rem 1rem;
+        color: {colors['text']};
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 0.2rem 0;
+        transition: background 0.2s ease;
+    }}
+    
+    .quick-nav-item:hover {{
+        background: {colors['light']};
+        color: {colors['text']};
+        text-decoration: none;
     }}
 
     /* Navigation Cards - Excellent UX */
@@ -427,7 +563,7 @@ def calculate_inventory_metrics(data: Dict) -> Dict:
     try:
         # First clean the data
         cleaned_data = clean_and_validate_data(data)
-        
+
         metrics = {
             "total_products": len(cleaned_data["raw_data"]),
             "total_value": 0.0,
@@ -444,9 +580,9 @@ def calculate_inventory_metrics(data: Dict) -> Dict:
             "total_reorder_value": 0.0,
             "stock_turnover_rate": 0.0
         }
-        
+
         st.success("✅ Metrics calculation started successfully")
-        
+
     except Exception as e:
         st.error(f"❌ Failed to initialize metrics calculation: {str(e)}")
         # Return safe defaults
@@ -596,18 +732,18 @@ def load_all_data():
         # Load all worksheets as per system structure with comprehensive fallback handling
         sheets_loaded = {}
         sheets_errors = {}
-        
+
         # Define all possible sheets
         sheet_names = [
             "Raw Material Master",
-            "Stock In", 
+            "Stock In",
             "Stock Out",
             "Inventory",
             "Supplier Master",
             "Report",
             "Partner Sheet"
         ]
-        
+
         # Try to load each sheet individually with detailed error tracking
         for sheet_name in sheet_names:
             try:
@@ -617,7 +753,7 @@ def load_all_data():
             except Exception as e:
                 sheets_errors[sheet_name] = str(e)
                 st.error(f"❌ Failed to load: {sheet_name} - {str(e)}")
-        
+
         # Report loading status
         if sheets_errors:
             st.warning(f"⚠️ **Loading Issues Found:** {len(sheets_errors)} sheets failed to load")
@@ -629,18 +765,18 @@ def load_all_data():
         # Get all records from available sheets with comprehensive fallback handling
         data = {}
         data_errors = {}
-        
+
         # Map sheet names to data keys
         sheet_data_mapping = {
             "Raw Material Master": "raw_data",
             "Stock In": "in_data",
-            "Stock Out": "out_data", 
+            "Stock Out": "out_data",
             "Inventory": "inventory_data",
             "Supplier Master": "supplier_data",
             "Report": "report_data",
             "Partner Sheet": "partner_data"
         }
-        
+
         # Load data from each successfully loaded sheet
         for sheet_name, ws in sheets_loaded.items():
             data_key = sheet_data_mapping.get(sheet_name)
@@ -653,13 +789,13 @@ def load_all_data():
                     data[data_key] = []
                     data_errors[sheet_name] = f"Failed to get records: {str(e)}"
                     st.error(f"❌ Failed to get records from {sheet_name}: {str(e)}")
-        
+
         # Initialize empty arrays for missing sheets
         for data_key in sheet_data_mapping.values():
             if data_key not in data:
                 data[data_key] = []
                 st.warning(f"⚠️ No data for {data_key} (sheet not found)")
-        
+
         # Report data loading status
         if data_errors:
             st.error("🚨 **Data Loading Issues:**")
@@ -667,7 +803,7 @@ def load_all_data():
                 st.write(f"  - **{sheet}:** {error}")
         else:
             st.success("📊 **All data loaded successfully!**")
-        
+
         # Show data summary
         st.info("📋 **Data Summary:**")
         for data_key, records in data.items():
@@ -746,70 +882,120 @@ def main():
                     "total_reorder_value": 0.0,
                     "stock_turnover_rate": 0.0
                 }
-                
+
     except Exception as e:
         st.error(f"❌ **Application Error:** {str(e)}")
         st.error("**Application failed to start. Please check the logs and try again.**")
         st.stop()
 
+    # Global Navigation Bar
+    st.markdown("""
+    <div class="global-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h2>🏪 Restaurant Inventory Manager</h2>
+            </div>
+            <div class="nav-links">
+                <a href="#" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', key: 'nav_home', value: 'home'}, '*')" class="nav-link">🏠 Home</a>
+                <a href="#" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', key: 'nav_dashboard', value: 'dashboard'}, '*')" class="nav-link">📊 Kitchen</a>
+                <a href="#" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', key: 'nav_alerts', value: 'alerts'}, '*')" class="nav-link">🚨 Alerts</a>
+                <a href="#" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', key: 'nav_products', value: 'products'}, '*')" class="nav-link">📦 Ingredients</a>
+                <a href="#" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', key: 'nav_reports', value: 'reports'}, '*')" class="nav-link">📈 Reports</a>
+                <a href="#" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', key: 'nav_settings', value: 'settings'}, '*')" class="nav-link">⚙️ Settings</a>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     # Main header
     st.markdown("""
     <div class="main-header">
-        <h1>📦 Inventory Management System</h1>
-        <p>Google Sheets-Based Stock Control Solution - Real-time inventory management</p>
+        <h1>🏪 Restaurant Inventory Manager</h1>
+        <p>Smart Stock Control for Your Restaurant - Track ingredients, manage costs, prevent waste</p>
+        <p style="font-size: 0.8em; margin-top: 10px; opacity: 0.8;">Made with Value by DV™</p>
     </div>
     """, unsafe_allow_html=True)
 
     # Quick status overview
     if metrics["alert_items"]:
         critical_count = len([item for item in metrics["alert_items"] if item["status"] == "critical"])
-        st.warning(f"🚨 **{critical_count} Critical Alerts** - Immediate action required!")
+        st.warning(f"🚨 **{critical_count} Items Need Reordering** - Check your kitchen supplies!")
     else:
-        st.success("✅ **All Systems Operational** - No critical alerts")
+        st.success("✅ **Kitchen Stock is Good** - All ingredients are available")
 
+        # Home button and current page indicator
+    st.markdown("---")
+    
+    # Current page indicator
+    current_page_names = {
+        "dashboard": "📊 Kitchen Overview",
+        "alerts": "🚨 Reorder Reminders", 
+        "products": "📦 Ingredient List",
+        "reports": "📈 Kitchen Reports",
+        "settings": "⚙️ Kitchen Settings"
+    }
+    
+    current_page_name = current_page_names.get(st.session_state.current_page, "🏠 Home")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown(f"""
+        <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    border-radius: 10px; color: white; margin: 1rem 0;">
+            <h3>📍 Currently Viewing: {current_page_name}</h3>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Home button
+    if st.button("🏠 **Back to Home**", use_container_width=True, key="nav_home"):
+        st.session_state.current_page = "dashboard"
+        st.rerun()
+    
+    st.markdown("---")
+    
     # Navigation with value propositions
-    st.markdown("### 🎯 What would you like to do today?")
-
+    st.markdown("### 🎯 What would you like to check today?")
+    
     # Create navigation grid
     col1, col2 = st.columns(2)
-
+    
     with col1:
         # Dashboard/Overview
-        if st.button("📊 **Dashboard Overview**\n\nSee your complete inventory status at a glance",
+        if st.button("📊 **Kitchen Overview**\n\nSee all your ingredients and supplies at a glance", 
                     use_container_width=True, key="nav_dashboard"):
             st.session_state.current_page = "dashboard"
             st.rerun()
-
+        
         # Alerts
-        if st.button("🚨 **Reorder Alerts**\n\nItems that need immediate attention",
+        if st.button("🚨 **Reorder Reminders**\n\nIngredients that need to be ordered soon", 
                     use_container_width=True, key="nav_alerts"):
             st.session_state.current_page = "alerts"
             st.rerun()
-
+        
         # Products
-        if st.button("📦 **Product Database**\n\nManage all your products and specifications",
+        if st.button("📦 **Ingredient List**\n\nManage all your kitchen ingredients and costs", 
                     use_container_width=True, key="nav_products"):
             st.session_state.current_page = "products"
             st.rerun()
-
+    
     with col2:
         # Reports
-        if st.button("📈 **Reports & Analytics**\n\nData-driven insights and trends",
+        if st.button("📈 **Kitchen Reports**\n\nSee usage patterns and cost analysis", 
                     use_container_width=True, key="nav_reports"):
             st.session_state.current_page = "reports"
             st.rerun()
-
+        
         # Settings
-        if st.button("⚙️ **System Settings**\n\nConfigure alerts and preferences",
+        if st.button("⚙️ **Kitchen Settings**\n\nSet reorder levels and alerts", 
                     use_container_width=True, key="nav_settings"):
             st.session_state.current_page = "settings"
             st.rerun()
-
+        
         # Quick Actions
-        if st.button("🔄 **Refresh Data**\n\nGet latest inventory updates",
+        if st.button("🔄 **Update Stock**\n\nGet latest ingredient counts", 
                     use_container_width=True, key="nav_refresh"):
             load_all_data.clear()
-            st.success("Data refreshed!")
+            st.success("Stock updated!")
             st.rerun()
 
     # Main content based on selected page with error handling
@@ -835,14 +1021,59 @@ def main():
         except Exception as fallback_error:
             st.error(f"❌ **Critical Error:** Even fallback failed: {str(fallback_error)}")
             st.error("**Please refresh the page or contact support.**")
+    
+    # Floating Action Button for Quick Navigation
+    st.markdown("""
+    <div class="fab" onclick="toggleQuickNav()">
+        🏠
+    </div>
+    
+    <div class="quick-nav" id="quickNav">
+        <a href="#" class="quick-nav-item" onclick="navigateTo('dashboard')">📊 Kitchen</a>
+        <a href="#" class="quick-nav-item" onclick="navigateTo('alerts')">🚨 Alerts</a>
+        <a href="#" class="quick-nav-item" onclick="navigateTo('products')">📦 Ingredients</a>
+        <a href="#" class="quick-nav-item" onclick="navigateTo('reports')">📈 Reports</a>
+        <a href="#" class="quick-nav-item" onclick="navigateTo('settings')">⚙️ Settings</a>
+    </div>
+    
+    <script>
+    function toggleQuickNav() {
+        const nav = document.getElementById('quickNav');
+        nav.classList.toggle('show');
+    }
+    
+    function navigateTo(page) {
+        // This would need to be integrated with Streamlit's session state
+        console.log('Navigate to:', page);
+        // For now, just hide the menu
+        document.getElementById('quickNav').classList.remove('show');
+    }
+    
+    // Close quick nav when clicking outside
+    document.addEventListener('click', function(event) {
+        const fab = document.querySelector('.fab');
+        const nav = document.getElementById('quickNav');
+        if (!fab.contains(event.target) && !nav.contains(event.target)) {
+            nav.classList.remove('show');
+        }
+    });
+    </script>
+    """, unsafe_allow_html=True)
 
 def show_inventory_sheet(metrics: Dict, data: Dict):
-    """Inventory Sheet - Main command center as per user manual"""
+    """Kitchen Overview - Main dashboard for restaurant inventory"""
+
+    # Breadcrumb navigation
+    st.markdown("""
+    <div style="padding: 0.5rem 0; color: #666; font-size: 0.9rem;">
+        🏠 Home > 📊 Kitchen Overview
+    </div>
+    """, unsafe_allow_html=True)
 
     # Value proposition for this page
-    st.markdown("### 📊 **Dashboard Overview** - Your Complete Inventory Status")
+    st.markdown("### 📊 **Kitchen Overview** - Your Complete Ingredient Status")
     st.info("""
-    **What you'll find here:** Real-time inventory metrics, financial overview, and quick insights to make informed decisions.
+    **What you'll find here:** Real-time ingredient counts, cost overview, and quick insights to manage your kitchen efficiently.
     """)
 
     # Alert Summary with optimized rendering
@@ -870,92 +1101,99 @@ def show_inventory_sheet(metrics: Dict, data: Dict):
 
     st.markdown("---")
 
-    # Inventory Sheet Key Metrics as per user manual
-    st.markdown("### 📊 Inventory Sheet - Key Metrics")
+    # Kitchen Overview Key Metrics
+    st.markdown("### 📊 Kitchen Overview - Key Metrics")
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        create_metric_card("📦 Total Products", f"{metrics['total_products']:,}", "Items in Raw Material Master")
+        create_metric_card("📦 Total Ingredients", f"{metrics['total_products']:,}", "Items in your kitchen")
 
     with col2:
-        create_metric_card("💰 Total Stock Value", f"₹{metrics['total_value']:,.0f}", "Quantity × Unit Price")
+        create_metric_card("💰 Total Ingredient Value", f"₹{metrics['total_value']:,.0f}", "Current stock value")
 
     with col3:
-        create_metric_card("📥 Total Stock In", f"{int(metrics['total_in']):,}", "Units received (Stock In)")
+        create_metric_card("📥 Ingredients Received", f"{int(metrics['total_in']):,}", "Units received this period")
 
     with col4:
-        create_metric_card("📤 Total Stock Out", f"{int(metrics['total_out']):,}", "Units consumed (Stock Out)")
+        create_metric_card("📤 Ingredients Used", f"{int(metrics['total_out']):,}", "Units consumed this period")
 
-    # Financial Overview as per user manual
-    st.markdown("### 💰 Financial Overview")
+    # Kitchen Cost Overview
+    st.markdown("### 💰 Kitchen Cost Overview")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        create_metric_card("📊 Avg Cost per Unit", f"₹{metrics['avg_cost_per_unit']:,.2f}", "Historical average price")
+        create_metric_card("📊 Avg Cost per Unit", f"₹{metrics['avg_cost_per_unit']:,.2f}", "Average ingredient cost")
 
     with col2:
-        create_metric_card("🔄 Stock Turnover Rate", f"{metrics['stock_turnover_rate']:.2f}", "Stock Out / Average Stock")
+        create_metric_card("🔄 Usage Rate", f"{metrics['stock_turnover_rate']:.2f}", "How fast ingredients are used")
 
     with col3:
-        create_metric_card("🚨 Est Reorder Value", f"₹{metrics['total_reorder_value']:,.0f}", "Projected restocking cost")
+        create_metric_card("🚨 Reorder Cost", f"₹{metrics['total_reorder_value']:,.0f}", "Cost to restock needed items")
 
-    # Quick Actions as per user manual
+    # Quick Actions for Kitchen
     st.markdown("---")
-    st.markdown("### ⚡ Quick Actions")
+    st.markdown("### ⚡ Quick Kitchen Actions")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("🚨 Check Reorder Alerts", use_container_width=True):
-            st.session_state.current_page = "🚨 Reorder Alerts"
+        if st.button("🚨 Check What Needs Ordering", use_container_width=True):
+            st.session_state.current_page = "alerts"
             st.rerun()
 
     with col2:
-        if st.button("📦 Raw Material Master", use_container_width=True):
-            st.session_state.current_page = "📦 Raw Material Master"
+        if st.button("📦 View All Ingredients", use_container_width=True):
+            st.session_state.current_page = "products"
             st.rerun()
 
     with col3:
-        if st.button("📈 Report Sheet", use_container_width=True):
-            st.session_state.current_page = "📈 Report Sheet"
+        if st.button("📈 Kitchen Reports", use_container_width=True):
+            st.session_state.current_page = "reports"
             st.rerun()
 
 def show_reorder_alerts(metrics: Dict):
-    """Reorder Alerts - Status indicators as per user manual"""
+    """Reorder Reminders - Kitchen ingredients that need ordering"""
+
+    # Breadcrumb navigation
+    st.markdown("""
+    <div style="padding: 0.5rem 0; color: #666; font-size: 0.9rem;">
+        🏠 Home > 🚨 Reorder Reminders
+    </div>
+    """, unsafe_allow_html=True)
 
     # Value proposition for this page
-    st.markdown("### 🚨 **Reorder Alerts** - Items Needing Your Attention")
+    st.markdown("### 🚨 **Reorder Reminders** - Ingredients That Need Ordering")
     st.info("""
-    **What you'll find here:** Critical items that need immediate reordering, warning items to monitor, and suggested order quantities.
+    **What you'll find here:** Ingredients that need immediate reordering, items running low, and suggested order quantities for your kitchen.
     """)
 
     if not metrics["alert_items"]:
         st.markdown("""
         <div class="success-card">
-            <h3>✅ No Active Reorder Alerts</h3>
-            <p>All inventory levels are within acceptable ranges. No immediate action required.</p>
+            <h3>✅ All Ingredients Are Well Stocked</h3>
+            <p>Your kitchen has all the ingredients it needs. No immediate ordering required.</p>
         </div>
         """, unsafe_allow_html=True)
         return
 
-    # Status indicators as per user manual
-    st.markdown("### 📊 Status Indicators")
+    # Status indicators for kitchen
+    st.markdown("### 📊 Kitchen Status")
     st.info("""
-    **Status Indicators:**
-    - "Order" - Immediate reorder required
-    - "Out of Stock" - Zero inventory
-    - Numerical value - Current stock level
+    **Kitchen Status:**
+    - "Order Now" - Need to order immediately
+    - "Out of Stock" - Completely out of ingredient
+    - "Running Low" - Stock is getting low
     """)
 
     # Sort alerts by priority for better performance
     critical_alerts = [item for item in metrics["alert_items"] if item["status"] == "critical"]
     warning_alerts = [item for item in metrics["alert_items"] if item["status"] == "warning"]
 
-    # Critical Alerts as per user manual
+    # Critical Alerts for kitchen
     if critical_alerts:
-        st.markdown("### 🔴 Critical Alerts (Immediate Action Required)")
+        st.markdown("### 🔴 **Order Immediately** - Critical Kitchen Items")
 
         for alert in critical_alerts:
             col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1, 1, 1])
@@ -985,9 +1223,9 @@ def show_reorder_alerts(metrics: Dict):
                 suggested_qty = alert['reorder_level'] - alert['current_stock']
                 st.metric("Reorder Qty", f"{suggested_qty:.0f}")
 
-    # Warning Alerts as per user manual
+    # Warning Alerts for kitchen
     if warning_alerts:
-        st.markdown("### 🟡 Warning Alerts (Monitor Closely)")
+        st.markdown("### 🟡 **Monitor Closely** - Items Running Low")
 
         for alert in warning_alerts:
             col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1, 1, 1])
@@ -1018,20 +1256,27 @@ def show_reorder_alerts(metrics: Dict):
                 st.metric("Reorder Qty", f"{suggested_qty:.0f}")
 
 def show_raw_material_master(data: Dict, metrics: Dict):
-    """Raw Material Master - Product database and specifications as per user manual"""
+    """Ingredient List - Kitchen ingredient database"""
+
+    # Breadcrumb navigation
+    st.markdown("""
+    <div style="padding: 0.5rem 0; color: #666; font-size: 0.9rem;">
+        🏠 Home > 📦 Ingredient List
+    </div>
+    """, unsafe_allow_html=True)
 
     # Value proposition for this page
-    st.markdown("### 📦 **Product Database** - Manage All Your Products")
+    st.markdown("### 📦 **Ingredient List** - Manage All Your Kitchen Ingredients")
     st.info("""
-    **What you'll find here:** Complete product information, stock levels, costs, and specifications. Search, filter, and manage your entire product catalog.
+    **What you'll find here:** Complete ingredient information, current stock levels, costs, and specifications. Search, filter, and manage your entire kitchen inventory.
     """)
 
-    # Required Information as per user manual
-    st.markdown("### 📋 Required Information")
+    # Required Information for kitchen
+    st.markdown("### 📋 Ingredient Information")
     st.info("""
-    **Required Fields:** RM ID, Product Name, Unit, Avg. Cost per Unit, Cost per Unit, Reorder Level
-    **Best Practice:** Use consistent naming conventions for RM IDs - typically first 4 letters of product + sequential number
-    **Example:** WHEA01 for Wheat, PANE04 for Paneer
+    **Required Fields:** Ingredient ID, Ingredient Name, Unit, Avg. Cost per Unit, Cost per Unit, Reorder Level
+    **Best Practice:** Use consistent naming conventions for Ingredient IDs - typically first 4 letters of ingredient + sequential number
+    **Example:** WHEA01 for Wheat, PANE04 for Paneer, TOMA01 for Tomatoes
     """)
 
     # Filters
@@ -1044,7 +1289,7 @@ def show_raw_material_master(data: Dict, metrics: Dict):
         )
 
     with col2:
-        search_term = st.text_input("Search Products (RM ID or Product Name)", "")
+        search_term = st.text_input("Search Ingredients (ID or Ingredient Name)", "")
 
     with col3:
         sort_by = st.selectbox(
@@ -1130,26 +1375,33 @@ def show_raw_material_master(data: Dict, metrics: Dict):
             st.metric("Status", product['status_text'].split()[0])
 
 def show_report_sheet(data: Dict, metrics: Dict):
-    """Report Sheet - Search and analysis tools as per user manual"""
+    """Kitchen Reports - Search and analysis tools for restaurant"""
+
+    # Breadcrumb navigation
+    st.markdown("""
+    <div style="padding: 0.5rem 0; color: #666; font-size: 0.9rem;">
+        🏠 Home > 📈 Kitchen Reports
+    </div>
+    """, unsafe_allow_html=True)
 
     # Value proposition for this page
-    st.markdown("### 📈 **Reports & Analytics** - Data-Driven Insights")
+    st.markdown("### 📈 **Kitchen Reports** - Smart Insights for Your Restaurant")
     st.info("""
-    **What you'll find here:** Search products, analyze consumption patterns, view financial metrics, and get insights for better inventory decisions.
+    **What you'll find here:** Search ingredients, analyze usage patterns, view cost metrics, and get insights for better kitchen management.
     """)
 
-    # Report Sheet Functions as per user manual
-    st.markdown("### 🔍 Search Capability")
+    # Kitchen Search Functions
+    st.markdown("### 🔍 Search Your Kitchen")
     st.info("""
     **Search Functions:**
-    - Type any product name in the search field
+    - Type any ingredient name in the search field
     - View comprehensive details instantly
     - Access usage history and patterns
     - Review reorder recommendations
     """)
 
     # Search functionality
-    search_product = st.text_input("🔍 Search Products", placeholder="Enter product name or RM ID...")
+    search_product = st.text_input("🔍 Search Ingredients", placeholder="Enter ingredient name or ID...")
 
     if search_product:
         st.markdown("### 📋 Search Results")
@@ -1166,78 +1418,78 @@ def show_report_sheet(data: Dict, metrics: Dict):
                 search_results.append(record)
 
         if search_results:
-            st.success(f"Found {len(search_results)} matching products")
+            st.success(f"Found {len(search_results)} matching ingredients")
             for result in search_results:
                 st.write(f"**{result['Product Name']}** ({result['RM ID']}) - Stock: {result['Current Stock']}")
         else:
-            st.warning("No products found matching your search")
+            st.warning("No ingredients found matching your search")
 
-    # Key Performance Indicators
-    st.markdown("### 📊 Key Performance Indicators")
+    # Key Kitchen Indicators
+    st.markdown("### 📊 Key Kitchen Indicators")
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("Total Products", metrics["total_products"])
-        st.caption("Items in Raw Material Master")
+        st.metric("Total Ingredients", metrics["total_products"])
+        st.caption("Items in your kitchen")
 
     with col2:
         st.metric("High Value Items", metrics["high_value_items"])
-        st.caption("Items worth >₹10,000")
+        st.caption("Ingredients worth >₹10,000")
 
     with col3:
         st.metric("Out of Stock", metrics["out_of_stock_items"])
-        st.caption("Zero inventory items")
+        st.caption("Completely out of ingredient")
 
     with col4:
-        st.metric("Critical Low", metrics["critical_items"])
+        st.metric("Running Low", metrics["critical_items"])
         st.caption("Below 50% reorder level")
 
-    # Financial Analytics
-    st.markdown("### 💰 Financial Analytics")
-
+        # Kitchen Cost Analytics
+    st.markdown("### 💰 Kitchen Cost Analytics")
+    
     col1, col2, col3, col4 = st.columns(4)
-
+    
     with col1:
-        st.metric("Total Inventory Value", f"₹{metrics['total_value']:,.0f}")
+        st.metric("Total Ingredient Value", f"₹{metrics['total_value']:,.0f}")
         st.caption("Current Stock × Unit Cost")
-
+    
     with col2:
         st.metric("Average Cost per Unit", f"₹{metrics['avg_cost_per_unit']:,.2f}")
-        st.caption("Weighted average cost")
-
+        st.caption("Average ingredient cost")
+    
     with col3:
         st.metric("Total Reorder Value", f"₹{metrics['total_reorder_value']:,.0f}")
-        st.caption("Reorder Level × Unit Cost")
-
+        st.caption("Cost to restock needed items")
+    
     with col4:
-        st.metric("Stock Turnover Rate", f"{metrics['stock_turnover_rate']:.2f}")
-        st.caption("Stock Out / Average Stock")
+        st.metric("Usage Rate", f"{metrics['stock_turnover_rate']:.2f}")
+        st.caption("How fast ingredients are used")
 
-    # Stock Movement Analysis
-    st.markdown("### 📦 Stock Movement Analysis")
-
+        # Kitchen Usage Analysis
+    st.markdown("### 📦 Kitchen Usage Analysis")
+    
     col1, col2, col3 = st.columns(3)
-
+    
     with col1:
-        st.metric("Total Stock In", f"{metrics['total_in']:,.0f}")
-        st.caption("Units received")
-
+        st.metric("Ingredients Received", f"{metrics['total_in']:,.0f}")
+        st.caption("Units received this period")
+    
     with col2:
-        st.metric("Total Stock Out", f"{metrics['total_out']:,.0f}")
-        st.caption("Units consumed")
-
+        st.metric("Ingredients Used", f"{metrics['total_out']:,.0f}")
+        st.caption("Units consumed this period")
+    
     with col3:
         net_movement = metrics['total_in'] - metrics['total_out']
-        st.metric("Net Movement", f"{net_movement:,.0f}")
-        st.caption("In - Out")
+        st.metric("Net Change", f"{net_movement:,.0f}")
+        st.caption("Received - Used")
 
-    # Value Distribution Analysis
-    st.markdown("### 📊 Value Distribution Analysis")
-
+        # Ingredient Value Analysis
+    st.markdown("### 📊 Ingredient Value Analysis")
+    
     # Use cleaned data for accurate calculations
     cleaned_data = clean_and_validate_data(data)
-
+    
     high_value_items = []
     medium_value_items = []
     low_value_items = []
@@ -1264,86 +1516,86 @@ def show_report_sheet(data: Dict, metrics: Dict):
 
     with col1:
         st.metric("High Value (>₹10K)", f"₹{sum(high_value_items):,.0f}")
-        st.caption(f"{high_value_count} items")
+        st.caption(f"{high_value_count} ingredients")
 
     with col2:
         st.metric("Medium Value (₹1K-10K)", f"₹{sum(medium_value_items):,.0f}")
-        st.caption(f"{medium_value_count} items")
+        st.caption(f"{medium_value_count} ingredients")
 
     with col3:
         st.metric("Low Value (<₹1K)", f"₹{sum(low_value_items):,.0f}")
-        st.caption(f"{low_value_count} items")
+        st.caption(f"{low_value_count} ingredients")
 
-    # Alert Analysis
-    st.markdown("### 🚨 Alert Analysis")
-
+        # Kitchen Alert Analysis
+    st.markdown("### 🚨 Kitchen Alert Analysis")
+    
     if metrics["alert_items"]:
         critical_alerts = [item for item in metrics["alert_items"] if item["status"] == "critical"]
         warning_alerts = [item for item in metrics["alert_items"] if item["status"] == "warning"]
-
+        
         col1, col2, col3 = st.columns(3)
-
+        
         with col1:
             critical_value = sum(item.get("stock_value", 0) for item in critical_alerts)
-            st.metric("Critical Alerts Value", f"₹{critical_value:,.0f}")
-            st.caption(f"{len(critical_alerts)} items")
-
+            st.metric("Critical Items Value", f"₹{critical_value:,.0f}")
+            st.caption(f"{len(critical_alerts)} ingredients")
+        
         with col2:
             warning_value = sum(item.get("stock_value", 0) for item in warning_alerts)
-            st.metric("Warning Alerts Value", f"₹{warning_value:,.0f}")
-            st.caption(f"{len(warning_alerts)} items")
-
+            st.metric("Warning Items Value", f"₹{warning_value:,.0f}")
+            st.caption(f"{len(warning_alerts)} ingredients")
+        
         with col3:
             total_alert_value = critical_value + warning_value
             st.metric("Total Alert Value", f"₹{total_alert_value:,.0f}")
-            st.caption(f"{len(metrics['alert_items'])} items")
+            st.caption(f"{len(metrics['alert_items'])} ingredients")
     else:
-        st.success("✅ No active alerts - All inventory levels are satisfactory")
+        st.success("✅ No active alerts - All kitchen ingredients are well stocked")
 
-    # System Data Quality
-    st.markdown("### 🔍 Data Quality Report")
-
-        # Calculate data quality metrics
+        # Kitchen Data Quality
+    st.markdown("### 🔍 Kitchen Data Quality")
+    
+    # Calculate data quality metrics
     total_raw_records = len(data.get("raw_data", []))
     total_in_records = len(data.get("in_data", []))
     total_out_records = len(data.get("out_data", []))
-
+    
     cleaned_raw_records = len(cleaned_data["raw_data"])
     cleaned_in_records = len(cleaned_data["in_data"])
     cleaned_out_records = len(cleaned_data["out_data"])
-
+    
     col1, col2, col3 = st.columns(3)
-
+    
     with col1:
         raw_quality = (cleaned_raw_records / max(total_raw_records, 1)) * 100
-        st.metric("Raw Material Quality", f"{raw_quality:.1f}%")
+        st.metric("Ingredient Data Quality", f"{raw_quality:.1f}%")
         st.caption(f"{cleaned_raw_records}/{total_raw_records} valid records")
-
+    
     with col2:
         in_quality = (cleaned_in_records / max(total_in_records, 1)) * 100
-        st.metric("Stock In Quality", f"{in_quality:.1f}%")
+        st.metric("Receiving Data Quality", f"{in_quality:.1f}%")
         st.caption(f"{cleaned_in_records}/{total_in_records} valid records")
-
+    
     with col3:
         out_quality = (cleaned_out_records / max(total_out_records, 1)) * 100
-        st.metric("Stock Out Quality", f"{out_quality:.1f}%")
+        st.metric("Usage Data Quality", f"{out_quality:.1f}%")
         st.caption(f"{cleaned_out_records}/{total_out_records} valid records")
 
-        # Consumption Tracking as per user manual
-    st.markdown("### 📊 Consumption Tracking")
+            # Kitchen Usage Tracking
+    st.markdown("### 📊 Kitchen Usage Tracking")
     
-    st.markdown("#### 🤝 Partner Sheet Monitoring")
+    st.markdown("#### 🤝 Partner Usage Monitoring")
     st.info("""
-    - Partner-specific consumption data
-    - Comparative usage analysis
+    - Partner-specific ingredient usage
+    - Comparative consumption analysis
     - Billing support information
     - Individual cost breakdowns
     """)
     partner_records = len(data.get("partner_data", []))
     st.metric("Partner Records", partner_records)
 
-    # System sheets overview
-    st.markdown("### 📋 System Sheets Overview")
+    # Kitchen Sheets Overview
+    st.markdown("### 📋 Kitchen Sheets Overview")
 
     sheet_stats = {
         "Raw Material Master": len(data.get("raw_data", [])),
@@ -1363,32 +1615,39 @@ def show_report_sheet(data: Dict, metrics: Dict):
             st.write(f"{record_count} records")
 
 def show_settings():
-    """System settings page with configuration options"""
+    """Kitchen settings page with configuration options"""
+
+    # Breadcrumb navigation
+    st.markdown("""
+    <div style="padding: 0.5rem 0; color: #666; font-size: 0.9rem;">
+        🏠 Home > ⚙️ Kitchen Settings
+    </div>
+    """, unsafe_allow_html=True)
 
     # Value proposition for this page
-    st.markdown("### ⚙️ **System Settings** - Configure Your Dashboard")
+    st.markdown("### ⚙️ **Kitchen Settings** - Configure Your Restaurant Dashboard")
     st.info("""
-    **What you'll find here:** Customize alert thresholds, set refresh intervals, and configure system preferences to match your business needs.
+    **What you'll find here:** Customize reorder alerts, set refresh intervals, and configure kitchen preferences to match your restaurant needs.
     """)
 
     # Theme settings
-    st.markdown("### 🎨 Theme Settings")
+    st.markdown("### 🎨 Kitchen Display Settings")
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("#### Light Mode")
-        st.info("Clean, professional appearance suitable for office environments")
+        st.info("Clean, professional appearance suitable for kitchen environments")
 
     with col2:
         st.markdown("#### Dark Mode")
-        st.info("Easy on the eyes, perfect for low-light conditions")
+        st.info("Easy on the eyes, perfect for low-light kitchen conditions")
 
-    # Alert settings
-    st.markdown("### 🔔 Alert Settings")
+    # Kitchen Alert Settings
+    st.markdown("### 🔔 Kitchen Alert Settings")
 
     critical_threshold = st.slider(
-        "Critical Stock Threshold (%)",
+        "Critical Ingredient Threshold (%)",
         min_value=10,
         max_value=50,
         value=25,
@@ -1396,7 +1655,7 @@ def show_settings():
     )
 
     warning_threshold = st.slider(
-        "Warning Stock Threshold (%)",
+        "Warning Ingredient Threshold (%)",
         min_value=50,
         max_value=100,
         value=75,
