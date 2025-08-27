@@ -1,6 +1,18 @@
-# Inventory Dashboard
+# 🏪 Restaurant Inventory Manager
 
-A comprehensive Streamlit-based inventory management dashboard that connects to Google Sheets for real-time inventory tracking and alert management.
+A comprehensive Streamlit-based inventory management dashboard that connects to Google Sheets for real-time inventory tracking and alert management. **Enhanced with Twigs Design System for professional UI/UX.**
+
+## ✨ New Features - Twigs Design System
+
+🎨 **Professional Design**: Implemented the [Twigs Design System](https://twigs.surveysparrow.com/docs/theming) for a modern, consistent user experience
+
+🎯 **Restaurant-Focused Colors**: Deep teal (#2E666D) and sophisticated gray (#363A43) palette perfect for professional kitchens
+
+📱 **Mobile-First Design**: Responsive layout that works beautifully on all devices
+
+♿ **Accessibility Compliant**: WCAG AA standards with proper contrast ratios and focus states
+
+🚀 **Performance Optimized**: Fast loading with smooth animations and transitions
 
 ## Features
 
@@ -9,8 +21,9 @@ A comprehensive Streamlit-based inventory management dashboard that connects to 
 - 📈 **Interactive Charts**: Stock trends, value distribution, and alert severity breakdown
 - 📋 **Alert History**: Track alert changes over time with session-based history
 - ➕ **Stock Management**: Add stock in/out entries directly to Google Sheets
-- 🎨 **Conditional Formatting**: Visual indicators for different alert levels
+- 🎨 **Twigs Design System**: Professional UI with consistent design tokens and components
 - 🔍 **Search & Filter**: Find products quickly with advanced filtering options
+- 📱 **Mobile Responsive**: Optimized for all screen sizes and devices
 
 ## Deployment on Render
 
@@ -93,12 +106,31 @@ The dashboard detects three types of alerts:
 2. **User Input** → **Google Sheets** → **Automatic Refresh**
 3. **Alert Detection** → **Session History** → **Trend Analysis**
 
+## 🎨 Twigs Design System
+
+This application implements the Twigs Design System for a professional, consistent user experience:
+
+### Design Tokens
+- **Colors**: Restaurant-focused palette with semantic color coding
+- **Typography**: Scalable font system with proper hierarchy
+- **Spacing**: Consistent spacing scale for layout
+- **Components**: Reusable UI components with proper styling
+
+### Key Components
+- **Twigs Cards**: Metric cards with gradient backgrounds
+- **Twigs Buttons**: Interactive buttons with hover states
+- **Status Indicators**: Color-coded badges for different states
+- **Navigation**: Responsive navigation with smooth transitions
+
+For detailed implementation information, see [TWIGS_THEMING.md](TWIGS_THEMING.md).
+
 ## Support
 
 For issues or questions:
 - Check the Google Sheets API setup
 - Verify service account permissions
 - Ensure Google Sheet structure matches expected format
+- Review Twigs theming documentation for design questions
 
 ## License
 

@@ -17,251 +17,327 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ============== Theme Configuration ==============
+# ============== Twigs Theme Configuration ==============
+def get_twigs_theme():
+    """Get Twigs theme configuration for restaurant inventory manager"""
+    return {
+        # Primary brand colors for restaurant theme
+        "primary": "#2E666D",      # Deep teal - professional restaurant color
+        "secondary": "#363A43",    # Dark gray - sophisticated accent
+        "tertiary": "#F4A261",     # Warm orange - food industry accent
+
+        # Semantic colors
+        "success": "#00b894",      # Green for good stock levels
+        "warning": "#fdcb6e",      # Yellow for low stock warnings
+        "error": "#ff6b6b",        # Red for critical alerts
+        "info": "#74b9ff",         # Blue for information
+
+        # Neutral colors
+        "white": "#ffffff",
+        "black": "#000000",
+        "gray": {
+            "50": "#f9fafb",
+            "100": "#f3f4f6",
+            "200": "#e5e7eb",
+            "300": "#d1d5db",
+            "400": "#9ca3af",
+            "500": "#6b7280",
+            "600": "#4b5563",
+            "700": "#374151",
+            "800": "#1f2937",
+            "900": "#111827"
+        },
+
+        # Restaurant-specific colors
+        "kitchen": {
+            "primary": "#2E666D",
+            "secondary": "#363A43",
+            "accent": "#F4A261",
+            "success": "#00b894",
+            "warning": "#fdcb6e",
+            "error": "#ff6b6b",
+            "info": "#74b9ff"
+        },
+
+        # Typography scale
+        "fontSizes": {
+            "xxs": "0.625rem",
+            "xs": "0.75rem",
+            "sm": "0.875rem",
+            "md": "1rem",
+            "lg": "1.125rem",
+            "xl": "1.25rem",
+            "2xl": "1.5rem",
+            "3xl": "1.875rem",
+            "4xl": "2.25rem",
+            "5xl": "3rem"
+        },
+
+        # Spacing scale
+        "spacing": {
+            "0": "0",
+            "1": "0.25rem",
+            "2": "0.5rem",
+            "3": "0.75rem",
+            "4": "1rem",
+            "5": "1.25rem",
+            "6": "1.5rem",
+            "8": "2rem",
+            "10": "2.5rem",
+            "12": "3rem",
+            "16": "4rem",
+            "20": "5rem",
+            "24": "6rem"
+        },
+
+        # Border radius
+        "radius": {
+            "none": "0",
+            "sm": "0.125rem",
+            "md": "0.375rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "2xl": "1rem",
+            "3xl": "1.5rem",
+            "full": "9999px"
+        },
+
+        # Shadows
+        "shadows": {
+            "sm": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            "md": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            "lg": "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+            "xl": "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+            "2xl": "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+        }
+    }
+
 def get_theme_colors():
-    """Get theme colors based on current mode"""
+    """Get theme colors based on current mode with Twigs design system"""
+    theme = get_twigs_theme()
+
     # Check if dark mode is enabled
     try:
-        # This is a workaround to detect dark mode
         dark_mode = st.get_option("theme.base") == "dark"
     except:
         dark_mode = False
 
     if dark_mode:
         return {
-            "primary": "#667eea",
-            "secondary": "#764ba2",
-            "background": "#0e1117",
-            "surface": "#262730",
-            "text": "#fafafa",
-            "text_secondary": "#b0b0b0",
-            "success": "#00b894",
-            "warning": "#fdcb6e",
-            "error": "#ff6b6b",
-            "info": "#74b9ff",
-            "border": "#404040",
-            "hover": "#1e1e1e",
-            "light": "#404040"
+            "primary": theme["primary"],
+            "secondary": theme["secondary"],
+            "background": theme["gray"]["900"],
+            "surface": theme["gray"]["800"],
+            "text": theme["white"],
+            "text_secondary": theme["gray"]["300"],
+            "success": theme["success"],
+            "warning": theme["warning"],
+            "error": theme["error"],
+            "info": theme["info"],
+            "border": theme["gray"]["700"],
+            "hover": theme["gray"]["800"],
+            "light": theme["gray"]["700"]
         }
     else:
         return {
-            "primary": "#667eea",
-            "secondary": "#764ba2",
-            "background": "#ffffff",
-            "surface": "#f0f2f6",
-            "text": "#262730",
-            "text_secondary": "#666666",
-            "success": "#00b894",
-            "warning": "#fdcb6e",
-            "error": "#ff6b6b",
-            "info": "#74b9ff",
-            "border": "#e0e0e0",
-            "hover": "#f8f9fa",
-            "light": "#f8f9fa"
+            "primary": theme["primary"],
+            "secondary": theme["secondary"],
+            "background": theme["white"],
+            "surface": theme["gray"]["50"],
+            "text": theme["gray"]["900"],
+            "text_secondary": theme["gray"]["600"],
+            "success": theme["success"],
+            "warning": theme["warning"],
+            "error": theme["error"],
+            "info": theme["info"],
+            "border": theme["gray"]["200"],
+            "hover": theme["gray"]["100"],
+            "light": theme["gray"]["100"]
         }
 
 def apply_custom_css():
-    """Apply optimized CSS with theme support and excellent UX"""
+    """Apply Twigs design system CSS with excellent UX"""
     colors = get_theme_colors()
+    theme = get_twigs_theme()
 
     st.markdown(f"""
     <style>
-    /* Global Styles */
+    /* ===== TWIGS DESIGN SYSTEM IMPLEMENTATION ===== */
+
+    /* Global Styles with Twigs Design Tokens */
     .stApp {{
         background-color: {colors['background']} !important;
         color: {colors['text']} !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.6;
     }}
 
-    /* Global Navigation Styles */
+    /* Typography Scale */
+    h1 {{ font-size: {theme['fontSizes']['4xl']}; font-weight: 700; margin-bottom: {theme['spacing']['6']}; }}
+    h2 {{ font-size: {theme['fontSizes']['3xl']}; font-weight: 600; margin-bottom: {theme['spacing']['5']}; }}
+    h3 {{ font-size: {theme['fontSizes']['2xl']}; font-weight: 600; margin-bottom: {theme['spacing']['4']}; }}
+    h4 {{ font-size: {theme['fontSizes']['xl']}; font-weight: 500; margin-bottom: {theme['spacing']['3']}; }}
+    p {{ font-size: {theme['fontSizes']['md']}; line-height: 1.6; margin-bottom: {theme['spacing']['4']}; }}
+
+    /* Global Navigation with Twigs Design */
     .global-nav {{
         background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
-        padding: 0;
+        padding: {theme['spacing']['0']};
         margin: -1rem -1rem 1rem -1rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        box-shadow: {theme['shadows']['lg']};
         position: sticky;
         top: 0;
         z-index: 1000;
+        border-radius: {theme['radius']['none']};
     }}
 
     .nav-container {{
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.5rem 2rem;
+        padding: {theme['spacing']['2']} {theme['spacing']['8']};
         max-width: 1200px;
         margin: 0 auto;
     }}
 
     .nav-brand h2 {{
-        color: white;
+        color: {theme['white']};
         margin: 0;
-        font-size: 1.2rem;
+        font-size: {theme['fontSizes']['xl']};
         font-weight: 600;
+        letter-spacing: -0.025em;
     }}
 
     .nav-links {{
         display: flex;
-        gap: 1rem;
+        gap: {theme['spacing']['4']};
         align-items: center;
     }}
 
     .nav-link {{
-        color: white;
+        color: {theme['white']};
         text-decoration: none;
-        padding: 0.5rem 1rem;
-        border-radius: 5px;
-        transition: all 0.3s ease;
+        padding: {theme['spacing']['2']} {theme['spacing']['4']};
+        border-radius: {theme['radius']['lg']};
+        transition: all 0.2s ease;
         font-weight: 500;
-        font-size: 0.9rem;
+        font-size: {theme['fontSizes']['sm']};
+        border: 1px solid transparent;
     }}
 
     .nav-link:hover {{
-        background: rgba(255,255,255,0.2);
-        color: white;
+        background: rgba(255,255,255,0.15);
+        color: {theme['white']};
         text-decoration: none;
         transform: translateY(-1px);
+        box-shadow: {theme['shadows']['sm']};
     }}
 
     .nav-link.active {{
-        background: rgba(255,255,255,0.3);
-        color: white;
+        background: rgba(255,255,255,0.25);
+        color: {theme['white']};
         font-weight: 600;
+        border-color: rgba(255,255,255,0.3);
     }}
 
-    /* Responsive Navigation */
-    @media (max-width: 768px) {{
-        .nav-container {{
-            flex-direction: column;
-            gap: 1rem;
-            padding: 1rem;
-        }}
-
-        .nav-links {{
-            flex-wrap: wrap;
-            justify-content: center;
-        }}
-
-        .nav-link {{
-            font-size: 0.8rem;
-            padding: 0.4rem 0.8rem;
-        }}
-    }}
-
-
-
-    /* Navigation Cards - Excellent UX */
-    .nav-card {{
-        background: {colors['surface']};
-        padding: 1.5rem;
-        border-radius: 15px;
-        border: 2px solid transparent;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        margin: 0.5rem 0;
-        transition: all 0.3s ease;
+    /* Twigs Button Components */
+    .twigs-button {{
+        background-color: {colors['primary']};
+        color: {theme['white']};
+        border: none;
+        border-radius: {theme['radius']['lg']};
+        padding: {theme['spacing']['3']} {theme['spacing']['6']};
+        font-size: {theme['fontSizes']['md']};
+        font-weight: 500;
         cursor: pointer;
-        text-decoration: none;
-        display: block;
+        transition: all 0.2s ease;
+        box-shadow: {theme['shadows']['sm']};
     }}
 
-    .nav-card:hover {{
-        transform: translateY(-3px);
-        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-        border-color: {colors['primary']};
-    }}
-
-    .nav-card.active {{
-        border-color: {colors['primary']};
-        background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);
-    }}
-
-    /* Value Proposition Cards */
-    .value-card {{
-        background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
-        padding: 1.5rem;
-        border-radius: 15px;
-        color: white;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-        margin: 0.5rem 0;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }}
-
-    .value-card:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
-    }}
-
-    /* Modern Card Styling with Theme Support */
-    .metric-card {{
-        background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
-        padding: 1.5rem;
-        border-radius: 15px;
-        color: white;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-        margin: 0.5rem 0;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }}
-
-    .metric-card:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
-    }}
-
-    .alert-card {{
-        background: linear-gradient(135deg, {colors['error']} 0%, #ee5a24 100%);
-        padding: 1rem;
-        border-radius: 12px;
-        color: white;
-        box-shadow: 0 4px 20px rgba(255,107,107,0.3);
-        margin: 0.5rem 0;
-        transition: transform 0.2s ease;
-    }}
-
-    .alert-card:hover {{
+    .twigs-button:hover {{
+        background-color: {colors['secondary']};
         transform: translateY(-1px);
+        box-shadow: {theme['shadows']['md']};
     }}
 
-    .success-card {{
+    .twigs-button:active {{
+        transform: translateY(0);
+    }}
+
+    .twigs-button.secondary {{
+        background-color: transparent;
+        color: {colors['primary']};
+        border: 2px solid {colors['primary']};
+    }}
+
+    .twigs-button.secondary:hover {{
+        background-color: {colors['primary']};
+        color: {theme['white']};
+    }}
+
+    /* Twigs Card Components */
+    .twigs-card {{
+        background-color: {colors['surface']};
+        border-radius: {theme['radius']['xl']};
+        padding: {theme['spacing']['6']};
+        box-shadow: {theme['shadows']['md']};
+        border: 1px solid {colors['border']};
+        transition: all 0.2s ease;
+        margin-bottom: {theme['spacing']['4']};
+    }}
+
+    .twigs-card:hover {{
+        box-shadow: {theme['shadows']['lg']};
+        transform: translateY(-2px);
+    }}
+
+    .twigs-card.metric {{
+        background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
+        color: {theme['white']};
+        text-align: center;
+        box-shadow: {theme['shadows']['lg']};
+    }}
+
+    .twigs-card.alert {{
+        background: linear-gradient(135deg, {colors['error']} 0%, #ee5a24 100%);
+        color: {theme['white']};
+        border-left: 4px solid {colors['error']};
+        box-shadow: {theme['shadows']['md']};
+    }}
+
+    .twigs-card.success {{
         background: linear-gradient(135deg, {colors['success']} 0%, #00a085 100%);
-        padding: 1rem;
-        border-radius: 12px;
-        color: white;
-        box-shadow: 0 4px 20px rgba(0,184,148,0.3);
-        margin: 0.5rem 0;
+        color: {theme['white']};
+        box-shadow: {theme['shadows']['md']};
     }}
 
-    .warning-card {{
+    .twigs-card.warning {{
         background: linear-gradient(135deg, {colors['warning']} 0%, #e17055 100%);
-        padding: 1rem;
-        border-radius: 12px;
-        color: white;
-        box-shadow: 0 4px 20px rgba(253,203,110,0.3);
-        margin: 0.5rem 0;
+        color: {theme['white']};
+        box-shadow: {theme['shadows']['md']};
     }}
 
-    .info-card {{
+    .twigs-card.info {{
         background: linear-gradient(135deg, {colors['info']} 0%, #0984e3 100%);
-        padding: 1rem;
-        border-radius: 12px;
-        color: white;
-        box-shadow: 0 4px 20px rgba(116,185,255,0.3);
-        margin: 0.5rem 0;
+        color: {theme['white']};
+        box-shadow: {theme['shadows']['md']};
     }}
 
-    /* Product Status Cards with Theme Support */
+    /* Product Cards with Twigs Design */
     .product-card {{
         background: {colors['surface']};
-        padding: 1rem;
-        border-radius: 10px;
+        padding: {theme['spacing']['4']};
+        border-radius: {theme['radius']['lg']};
         border-left: 4px solid {colors['primary']};
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        margin: 0.5rem 0;
+        box-shadow: {theme['shadows']['sm']};
+        margin: {theme['spacing']['2']} 0;
         transition: all 0.2s ease;
         color: {colors['text']};
     }}
 
     .product-card:hover {{
         transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        box-shadow: {theme['shadows']['md']};
         background: {colors['hover']};
     }}
 
@@ -280,32 +356,121 @@ def apply_custom_css():
         background: linear-gradient(135deg, rgba(0,184,148,0.1) 0%, rgba(0,184,148,0.05) 100%);
     }}
 
-    /* Header Styling */
+    /* Header Styling with Twigs */
     .main-header {{
         background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
-        padding: 2rem;
-        border-radius: 20px;
-        color: white;
+        padding: {theme['spacing']['8']};
+        border-radius: {theme['radius']['3xl']};
+        color: {theme['white']};
         text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        margin-bottom: {theme['spacing']['8']};
+        box-shadow: {theme['shadows']['xl']};
     }}
 
-    /* Quick Action Buttons */
+    .main-header h1 {{
+        font-size: {theme['fontSizes']['4xl']};
+        font-weight: 700;
+        margin-bottom: {theme['spacing']['4']};
+        letter-spacing: -0.025em;
+    }}
+
+    .main-header p {{
+        font-size: {theme['fontSizes']['lg']};
+        opacity: 0.9;
+        margin-bottom: {theme['spacing']['2']};
+    }}
+
+    /* Quick Action Buttons with Twigs */
     .quick-action {{
         background: {colors['surface']};
-        padding: 1rem;
-        border-radius: 10px;
+        padding: {theme['spacing']['4']};
+        border-radius: {theme['radius']['lg']};
         border: 2px solid {colors['border']};
         transition: all 0.2s ease;
         text-align: center;
         cursor: pointer;
+        font-weight: 500;
     }}
 
     .quick-action:hover {{
         border-color: {colors['primary']};
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        box-shadow: {theme['shadows']['md']};
+    }}
+
+    /* Status Indicators */
+    .status-indicator {{
+        display: inline-flex;
+        align-items: center;
+        padding: {theme['spacing']['1']} {theme['spacing']['3']};
+        border-radius: {theme['radius']['full']};
+        font-size: {theme['fontSizes']['xs']};
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }}
+
+    .status-indicator.critical {{
+        background-color: {colors['error']};
+        color: {theme['white']};
+    }}
+
+    .status-indicator.warning {{
+        background-color: {colors['warning']};
+        color: {theme['black']};
+    }}
+
+    .status-indicator.success {{
+        background-color: {colors['success']};
+        color: {theme['white']};
+    }}
+
+    /* Responsive Design with Twigs Breakpoints */
+    @media (max-width: 768px) {{
+        .nav-container {{
+            flex-direction: column;
+            gap: {theme['spacing']['4']};
+            padding: {theme['spacing']['4']};
+        }}
+
+        .nav-links {{
+            flex-wrap: wrap;
+            justify-content: center;
+        }}
+
+        .nav-link {{
+            font-size: {theme['fontSizes']['xs']};
+            padding: {theme['spacing']['2']} {theme['spacing']['3']};
+        }}
+
+        .twigs-card {{
+            margin: {theme['spacing']['2']} 0;
+            padding: {theme['spacing']['4']};
+        }}
+
+        .main-header {{
+            padding: {theme['spacing']['4']};
+            margin-bottom: {theme['spacing']['4']};
+        }}
+
+        .main-header h1 {{
+            font-size: {theme['fontSizes']['2xl']};
+        }}
+    }}
+
+    /* Loading Animation */
+    .loading {{
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: {theme['white']};
+        animation: spin 1s ease-in-out infinite;
+    }}
+
+    @keyframes spin {{
+        to {{ transform: rotate(360deg); }}
     }}
 
     /* Alert Bell Animation */
@@ -319,43 +484,31 @@ def apply_custom_css():
         75% {{ transform: rotate(5deg); }}
     }}
 
-    /* Sidebar Styling */
+    /* Streamlit Component Overrides */
     .css-1d391kg {{
         background-color: {colors['surface']} !important;
     }}
 
-    /* Metric Styling */
     .css-1wivap2 {{
         background-color: {colors['surface']} !important;
         border: 1px solid {colors['border']} !important;
+        border-radius: {theme['radius']['lg']} !important;
     }}
 
-    /* Responsive Design */
-    @media (max-width: 768px) {{
-        .metric-card, .alert-card, .success-card, .warning-card, .info-card, .nav-card {{
-            margin: 0.25rem 0;
-            padding: 1rem;
+    /* Enhanced Focus States */
+    button:focus, input:focus, select:focus {{
+        outline: 2px solid {colors['primary']};
+        outline-offset: 2px;
+        border-radius: {theme['radius']['md']};
+    }}
+
+    /* Accessibility Improvements */
+    @media (prefers-reduced-motion: reduce) {{
+        *, *::before, *::after {{
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
         }}
-
-        .main-header {{
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }}
-    }}
-
-    /* Loading Animation */
-    .loading {{
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid rgba(255,255,255,.3);
-        border-radius: 50%;
-        border-top-color: #fff;
-        animation: spin 1s ease-in-out infinite;
-    }}
-
-    @keyframes spin {{
-        to {{ transform: rotate(360deg); }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -735,27 +888,61 @@ def load_all_data():
         st.error(f"Error loading data: {str(e)}")
         return None
 
-# ============== Optimized UI Components ==============
-def create_metric_card(title: str, value: str, subtitle: str, card_class: str = "metric-card"):
-    """Optimized metric card component"""
+# ============== Twigs UI Components ==============
+def create_twigs_metric_card(title: str, value: str, subtitle: str, card_type: str = "metric"):
+    """Twigs design system metric card component"""
     st.markdown(f"""
-    <div class="{card_class}">
-        <h3>{title}</h3>
-        <h2>{value}</h2>
-        <p>{subtitle}</p>
+    <div class="twigs-card {card_type}">
+        <h3 style="margin-bottom: 0.5rem; font-size: 1.125rem; font-weight: 600;">{title}</h3>
+        <h2 style="margin: 0.5rem 0; font-size: 2rem; font-weight: 700;">{value}</h2>
+        <p style="margin: 0; opacity: 0.9; font-size: 0.875rem;">{subtitle}</p>
     </div>
     """, unsafe_allow_html=True)
 
-def create_product_card(product: Dict, colors: Dict):
-    """Optimized product card component"""
+def create_twigs_product_card(product: Dict, colors: Dict):
+    """Twigs design system product card component"""
     status = product['status']
+    status_emoji = {
+        "critical": "🔴",
+        "warning": "🟡",
+        "success": "🟢"
+    }.get(status, "⚪")
+
     st.markdown(f"""
     <div class="product-card {status}">
-        <h4>{product['name']}</h4>
-        <p><strong>Status:</strong> {product['status_text']}</p>
-        <p><strong>Description:</strong> {product['status_desc']}</p>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span style="font-size: 1.25rem;">{status_emoji}</span>
+            <h4 style="margin: 0; font-size: 1.125rem; font-weight: 600;">{product['name']}</h4>
+        </div>
+        <p style="margin: 0.25rem 0; font-size: 0.875rem;"><strong>Status:</strong> {product['status_text']}</p>
+        <p style="margin: 0.25rem 0; font-size: 0.875rem; opacity: 0.8;">{product['status_desc']}</p>
     </div>
     """, unsafe_allow_html=True)
+
+def create_twigs_status_indicator(status: str, text: str):
+    """Twigs design system status indicator"""
+    st.markdown(f"""
+    <span class="status-indicator {status}">{text}</span>
+    """, unsafe_allow_html=True)
+
+def create_twigs_button(text: str, button_type: str = "primary", key: str = None):
+    """Twigs design system button component"""
+    button_class = f"twigs-button {button_type}" if button_type != "primary" else "twigs-button"
+    button_html = f"""
+    <button class="{button_class}" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', key: '{key}', value: 'clicked'}}, '*')">
+        {text}
+    </button>
+    """
+    st.markdown(button_html, unsafe_allow_html=True)
+
+# Legacy components for backward compatibility
+def create_metric_card(title: str, value: str, subtitle: str, card_class: str = "metric-card"):
+    """Legacy metric card component - now uses Twigs design"""
+    create_twigs_metric_card(title, value, subtitle, "metric")
+
+def create_product_card(product: Dict, colors: Dict):
+    """Legacy product card component - now uses Twigs design"""
+    create_twigs_product_card(product, colors)
 
 # ============== Main Application ==============
 def main():
@@ -951,7 +1138,7 @@ def show_inventory_sheet(metrics: Dict, data: Dict):
     **What you'll find here:** Real-time ingredient counts, cost overview, and quick insights to manage your kitchen efficiently.
     """)
 
-    # Alert Summary with optimized rendering
+    # Alert Summary with Twigs design system
     if metrics["alert_items"]:
         critical_count = len([item for item in metrics["alert_items"] if item["status"] == "critical"])
         warning_count = len([item for item in metrics["alert_items"] if item["status"] == "warning"])
@@ -959,53 +1146,53 @@ def show_inventory_sheet(metrics: Dict, data: Dict):
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            create_metric_card("🚨 Critical Alerts", str(critical_count), "Items need immediate attention", "alert-card")
+            create_twigs_metric_card("🚨 Critical Alerts", str(critical_count), "Items need immediate attention", "alert")
 
         with col2:
-            create_metric_card("⚠️ Low Stock Alerts", str(warning_count), "Items need reordering soon", "warning-card")
+            create_twigs_metric_card("⚠️ Low Stock Alerts", str(warning_count), "Items need reordering soon", "warning")
 
         with col3:
-            create_metric_card("📊 Total Alerts", str(len(metrics["alert_items"])), "Items requiring action", "info-card")
+            create_twigs_metric_card("📊 Total Alerts", str(len(metrics["alert_items"])), "Items requiring action", "info")
     else:
         st.markdown("""
-        <div class="success-card">
-            <h3>✅ All Systems Operational</h3>
-            <p>No reorder alerts at this time. All inventory levels are satisfactory.</p>
+        <div class="twigs-card success">
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.125rem; font-weight: 600;">✅ All Systems Operational</h3>
+            <p style="margin: 0; opacity: 0.9; font-size: 0.875rem;">No reorder alerts at this time. All inventory levels are satisfactory.</p>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("---")
 
-    # Kitchen Overview Key Metrics
+    # Kitchen Overview Key Metrics with Twigs design
     st.markdown("### 📊 Kitchen Overview - Key Metrics")
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        create_metric_card("📦 Total Ingredients", f"{metrics['total_products']:,}", "Items in your kitchen")
+        create_twigs_metric_card("📦 Total Ingredients", f"{metrics['total_products']:,}", "Items in your kitchen", "metric")
 
     with col2:
-        create_metric_card("💰 Total Ingredient Value", f"₹{metrics['total_value']:,.0f}", "Current stock value")
+        create_twigs_metric_card("💰 Total Ingredient Value", f"₹{metrics['total_value']:,.0f}", "Current stock value", "metric")
 
     with col3:
-        create_metric_card("📥 Ingredients Received", f"{int(metrics['total_in']):,}", "Units received this period")
+        create_twigs_metric_card("📥 Ingredients Received", f"{int(metrics['total_in']):,}", "Units received this period", "metric")
 
     with col4:
-        create_metric_card("📤 Ingredients Used", f"{int(metrics['total_out']):,}", "Units consumed this period")
+        create_twigs_metric_card("📤 Ingredients Used", f"{int(metrics['total_out']):,}", "Units consumed this period", "metric")
 
-    # Kitchen Cost Overview
+    # Kitchen Cost Overview with Twigs design
     st.markdown("### 💰 Kitchen Cost Overview")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        create_metric_card("📊 Avg Cost per Unit", f"₹{metrics['avg_cost_per_unit']:,.2f}", "Average ingredient cost")
+        create_twigs_metric_card("📊 Avg Cost per Unit", f"₹{metrics['avg_cost_per_unit']:,.2f}", "Average ingredient cost", "metric")
 
     with col2:
-        create_metric_card("🔄 Usage Rate", f"{metrics['stock_turnover_rate']:.2f}", "How fast ingredients are used")
+        create_twigs_metric_card("🔄 Usage Rate", f"{metrics['stock_turnover_rate']:.2f}", "How fast ingredients are used", "metric")
 
     with col3:
-        create_metric_card("🚨 Reorder Cost", f"₹{metrics['total_reorder_value']:,.0f}", "Cost to restock needed items")
+        create_twigs_metric_card("🚨 Reorder Cost", f"₹{metrics['total_reorder_value']:,.0f}", "Cost to restock needed items", "metric")
 
     # Quick Actions for Kitchen
     st.markdown("---")
